@@ -22,7 +22,10 @@ vi.mock("@/lib/supabase/client", () => ({
   createSupabaseBrowserClient: () => ({ auth: authMocks }),
 }));
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.unstubAllEnvs();
+});
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -82,6 +85,7 @@ describe("authentication forms", () => {
   });
 
   it("starts registration and gives the same confirmation message", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://ledgerly-two-gray.vercel.app/");
     render(<AuthForm mode="sign-up" />);
     fireEvent.change(screen.getByLabelText("Display name"), { target: { value: "Ada Ledger" } });
     fireEvent.change(screen.getByLabelText("Email address"), { target: { value: "ada@example.com" } });
@@ -93,11 +97,15 @@ describe("authentication forms", () => {
     );
     expect(authMocks.signUp).toHaveBeenCalledWith(expect.objectContaining({
       email: "ada@example.com",
-      options: expect.objectContaining({ data: { display_name: "Ada Ledger" } }),
+      options: expect.objectContaining({
+        emailRedirectTo: "https://ledgerly-two-gray.vercel.app/auth/callback",
+        data: { display_name: "Ada Ledger" },
+      }),
     }));
   });
 
   it("requests password reset without exposing account existence", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SITE_URL", "https://ledgerly-two-gray.vercel.app");
     render(<AuthForm mode="forgot-password" />);
     fireEvent.change(screen.getByLabelText("Email address"), { target: { value: "ada@example.com" } });
     fireEvent.click(screen.getByRole("button", { name: "Send reset link" }));
@@ -107,7 +115,9 @@ describe("authentication forms", () => {
     );
     expect(authMocks.resetPasswordForEmail).toHaveBeenCalledWith(
       "ada@example.com",
-      expect.objectContaining({ redirectTo: expect.stringContaining("/auth/callback?next=/reset-password") }),
+      expect.objectContaining({
+        redirectTo: "https://ledgerly-two-gray.vercel.app/auth/callback?next=/reset-password",
+      }),
     );
   });
 

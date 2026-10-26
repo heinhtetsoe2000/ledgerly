@@ -32,6 +32,11 @@ const modeContent: Record<AuthMode, { title: string; subtitle: string; button: s
   },
 };
 
+function getAuthRedirectBaseUrl() {
+  const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+  return configuredSiteUrl?.replace(/\/+$/, "") || window.location.origin;
+}
+
 export function AuthForm({ mode }: { mode: AuthMode }) {
   const router = useRouter();
   const [error, setError] = useState("");
@@ -92,7 +97,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           email: parsed.data.email,
           password: parsed.data.password,
           options: {
-            emailRedirectTo: `${window.location.origin}/auth/callback`,
+            emailRedirectTo: `${getAuthRedirectBaseUrl()}/auth/callback`,
             data: { display_name: parsed.data.displayName },
           },
         });
@@ -116,7 +121,7 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
           return;
         }
         await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+          redirectTo: `${getAuthRedirectBaseUrl()}/auth/callback?next=/reset-password`,
         });
         setMessage("If an account matches that email, password reset instructions are on the way.");
         return;
