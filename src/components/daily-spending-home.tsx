@@ -1,20 +1,27 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
 import type { Database } from "@/lib/supabase/database.types";
 import { formatCurrencyAmount } from "@/lib/currency";
 import { formatCalendarDate } from "@/lib/dates";
 import { summarizeExpensesByCurrency } from "@/lib/finance";
+import { HomeTransactionDialog } from "@/components/home-transaction-dialog";
 
+type Category = Database["public"]["Tables"]["categories"]["Row"];
 type DailyTransaction = Pick<
   Database["public"]["Tables"]["transactions"]["Row"],
   "id" | "type" | "amount" | "currency_code" | "description"
 >;
 
 export function DailySpendingHome({
+  canAddTransaction,
+  categories,
+  currency,
   date,
   hasError,
   transactions,
 }: {
+  canAddTransaction: boolean;
+  categories: Category[];
+  currency: string;
   date: string;
   hasError: boolean;
   transactions: DailyTransaction[];
@@ -33,10 +40,12 @@ export function DailySpendingHome({
             <p className="eyebrow"><time dateTime={date}>{formatCalendarDate(date, "en-US")}</time></p>
             <h2 id="today-expenses-title">Today&apos;s expenses</h2>
           </div>
-          <Link className="quick-add-link" href="/transactions#new-transaction-title">
-            <Plus aria-hidden="true" size={18} />
-            <span>Add transaction</span>
-          </Link>
+          <HomeTransactionDialog
+            categories={categories}
+            currency={currency}
+            disabled={!canAddTransaction}
+            today={date}
+          />
         </div>
         {hasError ? (
           <p className="config-notice" role="status">Today&apos;s activity is unavailable right now.</p>

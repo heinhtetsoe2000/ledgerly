@@ -18,7 +18,7 @@ const navigationItems = [
   { href: "/", label: "Overview", icon: LayoutDashboard },
   { href: "/transactions", label: "Transactions", icon: ArrowLeftRight },
   { href: "/categories", label: "Categories", icon: Tags },
-  { href: "/reports", label: "Reports", icon: ChartNoAxesCombined },
+  { href: "/reports", label: "Financial Analysis", icon: ChartNoAxesCombined },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 

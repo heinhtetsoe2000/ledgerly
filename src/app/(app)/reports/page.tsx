@@ -36,7 +36,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
     return (
       <div>
         <header className="page-heading">
-          <div><p className="eyebrow">YOUR FINANCIAL PICTURE</p><h1>Reports</h1></div>
+          <div><p className="eyebrow">FINANCIAL ANALYSIS</p><h1>Financial Analysis</h1></div>
         </header>
         <p className="config-notice" role="alert">Select a valid date range. The end date must be on or after the start date.</p>
         <DateRangeForm startDate={startDate} endDate={endDate} />
@@ -59,7 +59,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
       return (
         <div>
           <header className="page-heading">
-            <div><p className="eyebrow">YOUR FINANCIAL PICTURE</p><h1>Reports</h1></div>
+            <div><p className="eyebrow">FINANCIAL ANALYSIS</p><h1>Financial Analysis</h1></div>
           </header>
           <DateRangeForm startDate={startDate} endDate={endDate} />
           <p className="config-notice" role="status">Report data is unavailable until the database migrations are applied.</p>
@@ -99,8 +99,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
     <div>
       <header className="page-heading">
         <div>
-          <p className="eyebrow">YOUR FINANCIAL PICTURE</p>
-          <h1>Reports</h1>
+          <p className="eyebrow">FINANCIAL ANALYSIS</p>
+          <h1>Financial Analysis</h1>
           <p className="page-description">Review trends across an inclusive calendar date range.</p>
         </div>
         <Link className="report-export" href={exportHref}>Export CSV</Link>

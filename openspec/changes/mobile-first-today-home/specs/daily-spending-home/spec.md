@@ -46,4 +46,4 @@ The home MUST prioritize today's expense amount, quick-add action, and today's t
 
 #### Scenario: Use the home on a wider viewport
 - **WHEN** the user views the home on a wider screen
-- **THEN** the layout uses the available space while keeping today's amount, quick-add action, and today's list prominent and preserving access to monthly insights
+- **THEN** the layout uses the available space while keeping today's amount, quick-add action, and today's list prominent, and monthly insights are available through Financial Analysis rather than on the home

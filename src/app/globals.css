@@ -906,6 +906,44 @@ a {
   font-weight: 650;
 }
 
+.home-transaction-dialog {
+  width: min(560px, calc(100% - 32px));
+  max-width: none;
+  max-height: min(90dvh, 780px);
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--foreground);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 24%);
+}
+
+.home-transaction-dialog::backdrop {
+  background: rgb(16 25 22 / 52%);
+  backdrop-filter: blur(2px);
+}
+
+.home-transaction-dialog-panel {
+  max-height: min(90dvh, 780px);
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.home-transaction-dialog-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.home-transaction-dialog-heading h2 {
+  margin: 0;
+  font-size: 18px;
+}
+
 .quick-add-link {
   display: inline-flex;
   width: 100%;
@@ -1310,6 +1348,20 @@ a {
 
   .page-content {
     padding: 30px 18px 48px;
+  }
+
+  .home-transaction-dialog {
+    width: 100%;
+    max-width: none;
+    max-height: 100dvh;
+    height: 100dvh;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .home-transaction-dialog-panel {
+    max-height: 100dvh;
+    padding: 18px;
   }
 
   .page-heading {

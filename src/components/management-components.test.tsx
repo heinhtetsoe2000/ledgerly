@@ -25,6 +25,9 @@ describe("management components", () => {
   it("shows today's currency-separated expenses and both transaction types", () => {
     render(
       <DailySpendingHome
+        canAddTransaction
+        categories={[foodCategory]}
+        currency="USD"
         date="2026-10-26"
         hasError={false}
         transactions={[
@@ -35,8 +38,7 @@ describe("management components", () => {
       />,
     );
 
-    expect(screen.getByRole("link", { name: "Add transaction" }).getAttribute("href"))
-      .toBe("/transactions#new-transaction-title");
+    expect(screen.getByRole("button", { name: "Add transaction" })).toBeTruthy();
     expect(screen.getByText("Lunch")).toBeTruthy();
     expect(screen.getByText("Coffee")).toBeTruthy();
     expect(screen.getByText("Pay")).toBeTruthy();
@@ -48,14 +50,32 @@ describe("management components", () => {
   });
 
   it("shows empty states for a day without transactions", () => {
-    render(<DailySpendingHome date="2026-10-26" hasError={false} transactions={[]} />);
+    render(
+      <DailySpendingHome
+        canAddTransaction
+        categories={[]}
+        currency="USD"
+        date="2026-10-26"
+        hasError={false}
+        transactions={[]}
+      />,
+    );
 
     expect(screen.getByText("No expenses recorded today.")).toBeTruthy();
     expect(screen.getByText("No transactions recorded today.")).toBeTruthy();
   });
 
   it("shows an unavailable state instead of a stale or empty total on query failure", () => {
-    render(<DailySpendingHome date="2026-10-26" hasError transactions={[]} />);
+    render(
+      <DailySpendingHome
+        canAddTransaction
+        categories={[]}
+        currency="USD"
+        date="2026-10-26"
+        hasError
+        transactions={[]}
+      />,
+    );
 
     expect(screen.getByRole("status").textContent).toContain("Today's activity is unavailable");
     expect(screen.queryByText("No expenses recorded today.")).toBeNull();

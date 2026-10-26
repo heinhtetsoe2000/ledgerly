@@ -16,18 +16,27 @@ type Category = Database["public"]["Tables"]["categories"]["Row"];
 
 const initialState: TransactionActionState = { status: "idle" };
 
-function TransactionForm({
+export function TransactionForm({
   categories,
   currency,
   today,
   transaction,
+  onSaved,
 }: {
   categories: Category[];
   currency: string;
   today: string;
   transaction?: Transaction;
+  onSaved?: () => void;
 }) {
-  const [state, action, pending] = useActionState(saveTransaction, initialState);
+  const [state, action, pending] = useActionState(async (
+    previousState: TransactionActionState,
+    formData: FormData,
+  ) => {
+    const nextState = await saveTransaction(previousState, formData);
+    if (nextState.status === "success") onSaved?.();
+    return nextState;
+  }, initialState);
   const [type, setType] = useState<Transaction["type"]>(transaction?.type ?? "expense");
   const filteredCategories = categories.filter((category) => category.type === type);
 

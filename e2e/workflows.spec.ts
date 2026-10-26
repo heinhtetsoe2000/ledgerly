@@ -14,11 +14,9 @@ async function signUp(page: import("@playwright/test").Page) {
   await page.getByRole("button", { name: "Create account" }).click();
   await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("heading", { name: "Overview" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Nothing recorded yet" })).toBeVisible();
   await expect(page.getByText("No expenses recorded today.")).toBeVisible();
   await expect(page.getByText("No transactions recorded today.")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Add transaction" }))
-    .toHaveAttribute("href", "/transactions#new-transaction-title");
+  await expect(page.getByRole("button", { name: "Add transaction" })).toBeVisible();
   return account;
 }
 
@@ -112,18 +110,37 @@ test("mobile finance workflows, transaction edit, filters, reports, export, and 
   await expect(page.getByText("E2E Edited Category", { exact: true })).toBeVisible();
 
   await page.goto("/");
-  await page.getByRole("link", { name: "Add transaction" }).click();
-  await expect(page).toHaveURL(/\/transactions#new-transaction-title$/);
+  const quickAddButton = page.getByRole("button", { name: "Add transaction" });
+  await quickAddButton.focus();
+  await page.keyboard.press("Enter");
+  await expect(page.locator(".home-transaction-dialog")).toBeVisible();
+  expect(await page.locator(".home-transaction-dialog").evaluate((dialog) => dialog.contains(document.activeElement))).toBe(true);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".home-transaction-dialog")).not.toBeVisible();
+  await expect(quickAddButton).toBeFocused();
+  await quickAddButton.click();
+  await expect(page.locator(".home-transaction-dialog")).toBeVisible();
   await expect(page.getByRole("heading", { name: "Add a transaction" })).toBeVisible();
+  const quickAddForm = page.locator(".home-transaction-dialog .transaction-form");
+  await expect(quickAddForm.locator('input[name="currencyCode"]')).toHaveValue("EUR");
+  const today = await quickAddForm.locator('input[name="occurredOn"]').inputValue();
+  await quickAddForm.evaluate((form) => { (form as HTMLFormElement).noValidate = true; });
+  await quickAddForm.locator('input[name="amount"]').fill("1.234");
+  await quickAddForm.locator('input[name="description"]').fill("E2E invalid amount");
+  await quickAddForm.getByRole("button", { name: "Add transaction" }).click();
+  await expect(page.locator(".home-transaction-dialog .auth-error")).toContainText("Check the amount");
+  await expect(page.locator(".home-transaction-dialog")).toBeVisible();
+  await quickAddForm.locator('input[name="amount"]').fill("23.45");
+  await quickAddForm.locator('input[name="description"]').fill("E2E grocery transaction");
+  await quickAddForm.locator('select[name="categoryId"]').selectOption({ label: "E2E Edited Category" });
+  await quickAddForm.locator('input[name="occurredOn"]').fill(today);
+  await quickAddForm.getByRole("button", { name: "Add transaction" }).click();
+  await expect(page.locator(".home-transaction-dialog")).not.toBeVisible();
+  await expect(quickAddButton).toBeFocused();
+  await expect(page.locator(".today-transactions-section")).toContainText("E2E grocery transaction");
+  await page.goto("/transactions");
   const transactionForm = page.locator(".transaction-form").first();
-  await expect(transactionForm.locator('input[name="currencyCode"]')).toHaveValue("EUR");
-  const today = await transactionForm.locator('input[name="occurredOn"]').inputValue();
-  await transactionForm.locator('input[name="amount"]').fill("23.45");
-  await transactionForm.locator('input[name="description"]').fill("E2E grocery transaction");
-  await transactionForm.locator('select[name="categoryId"]').selectOption({ label: "E2E Edited Category" });
-  await transactionForm.locator('input[name="occurredOn"]').fill(today);
-  await transactionForm.getByRole("button", { name: "Add transaction" }).click();
-  await expect(page.getByRole("status")).toContainText("Transaction added.");
   const transactionRow = page.locator(".transaction-item").filter({
     has: page.locator(".transaction-summary .transaction-description strong", {
       hasText: "E2E grocery transaction",
@@ -144,6 +161,14 @@ test("mobile finance workflows, transaction edit, filters, reports, export, and 
   await transactionForm.getByRole("button", { name: "Add transaction" }).click();
   await expect(transactionForm.getByRole("status")).toContainText("Transaction added.");
 
+  await transactionForm.locator('select[name="type"]').selectOption("income");
+  await transactionForm.locator('input[name="amount"]').fill("10.00");
+  await transactionForm.locator('input[name="currencyCode"]').fill("USD");
+  await transactionForm.locator('input[name="description"]').fill("E2E USD income");
+  await transactionForm.locator('input[name="occurredOn"]').fill(today);
+  await transactionForm.getByRole("button", { name: "Add transaction" }).click();
+  await expect(transactionForm.getByRole("status")).toContainText("Transaction added.");
+
   await page.goto("/");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
   const dailySectionsFit = await page.locator(".today-home, .today-transactions-section").evaluateAll((sections) =>
@@ -158,38 +183,62 @@ test("mobile finance workflows, transaction edit, filters, reports, export, and 
   await expect(page.locator(".today-expense-total strong")).toHaveCount(1);
   await expect(page.locator(".today-expense-total strong")).toContainText("23.45");
   await expect(page.locator(".today-transactions-section .recent-description strong"))
-    .toHaveText(["E2E grocery transaction edited"]);
-  await expect(page.locator(".today-transactions-section .recent-description strong"))
-    .not.toContainText("E2E yesterday transaction");
-  await expect(page.getByRole("heading", { name: "Recent transactions" })).toBeVisible();
+    .toContainText(["E2E USD income", "E2E grocery transaction edited"]);
+  await expect(page.locator(".today-transactions-section .recent-description strong")
+    .filter({ hasText: "E2E yesterday transaction" })).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Recent transactions" })).toHaveCount(0);
 
   const [todayYear, todayMonth] = today.split("-").map(Number);
   const previousMonthDate = new Date(Date.UTC(todayYear, todayMonth - 2, 1));
   const previousMonth = `${previousMonthDate.getUTCFullYear()}-${String(previousMonthDate.getUTCMonth() + 1).padStart(2, "0")}`;
   await page.goto(`/?month=${previousMonth}`);
-  await expect(page.locator(".today-expense-total strong")).toContainText("23.45");
+  await expect(page.locator(".today-expense-totals")).toContainText("23.45");
   await expect(page.locator(".today-transactions-section .recent-description strong"))
-    .toHaveText(["E2E grocery transaction edited"]);
-  await expect(page.getByRole("heading", { name: "Nothing recorded yet" })).toBeVisible();
+    .toHaveText(["E2E USD income", "E2E grocery transaction edited"]);
 
   await page.goto("/");
   await page.setViewportSize({ width: 1280, height: 900 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(1280);
   await expect(page.getByRole("heading", { name: "Today's expenses" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Add transaction" })).toBeVisible();
-  await expect(page.locator(".summary-grid")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Add transaction" })).toBeVisible();
+  await expect(page.locator(".summary-grid")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Financial Analysis" }).first()).toHaveAttribute("href", "/reports");
+  const desktopQuickAddButton = page.getByRole("button", { name: "Add transaction" });
+  await desktopQuickAddButton.click();
+  const desktopDialog = page.locator(".home-transaction-dialog");
+  await expect(desktopDialog).toBeVisible();
+  const desktopDialogFits = await desktopDialog.evaluate((dialog) => {
+    const bounds = dialog.getBoundingClientRect();
+    return bounds.left >= 0 && bounds.top >= 0 && bounds.right <= window.innerWidth && bounds.bottom <= window.innerHeight;
+  });
+  expect(desktopDialogFits).toBe(true);
+  await page.keyboard.press("Escape");
+  await expect(desktopDialog).not.toBeVisible();
+  await expect(desktopQuickAddButton).toBeFocused();
   await page.setViewportSize({ width: 360, height: 844 });
 
   await page.goto(`/reports?startDate=${today}&endDate=${today}`);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+  await expect(page.getByRole("heading", { name: "Financial Analysis", level: 1 })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Monthly comparison by currency" })).toBeVisible();
+  await expect(page.locator(".report-table")).toContainText("EUR");
+  await expect(page.locator(".report-table")).toContainText("USD");
   const reportCsv = await page.evaluate(async () => {
     const response = await fetch(`/transactions/export${location.search}`, { credentials: "same-origin" });
     return { status: response.status, content: await response.text() };
   });
   expect(reportCsv.status).toBe(200);
   expect(reportCsv.content).toContain('"EUR"');
+  expect(reportCsv.content).toContain('"USD"');
   expect(reportCsv.content).toContain('"E2E grocery transaction edited"');
+
+  const invalidEndDate = yesterdayDate.toISOString().slice(0, 10);
+  await page.goto(`/reports?startDate=${today}&endDate=${invalidEndDate}`);
+  await expect(page.getByRole("heading", { name: "Financial Analysis", level: 1 })).toBeVisible();
+  await expect(page.locator(".config-notice[role=alert]")).toContainText("Select a valid date range");
+
+  await page.goto("/reports?startDate=2099-01-01&endDate=2099-01-02");
+  await expect(page.getByRole("heading", { name: "No transactions in this range" })).toBeVisible();
 
   await page.goto("/settings");
   await expect(page.locator("#settings-currency")).toHaveCount(1);
@@ -230,7 +279,9 @@ test("mobile finance workflows, transaction edit, filters, reports, export, and 
   await expect(transactionRow).toHaveCount(0);
 
   await page.goto("/transactions?search=E2E%20yesterday%20transaction");
-  const yesterdayTransactionRow = page.locator(".transaction-item").filter({ hasText: "E2E yesterday transaction" });
+  const yesterdayTransactionRow = page.locator(".transaction-item").filter({
+    has: page.locator(".transaction-summary .transaction-description strong", { hasText: "E2E yesterday transaction" }),
+  });
   await expect(yesterdayTransactionRow).toBeVisible();
   await yesterdayTransactionRow.locator(".transaction-details > summary").click();
   await yesterdayTransactionRow.getByRole("button", { name: "Delete transaction" }).click();
