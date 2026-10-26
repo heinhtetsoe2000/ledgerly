@@ -883,6 +883,92 @@ a {
   color: var(--accent-strong);
 }
 
+.today-home {
+  display: grid;
+  gap: 16px;
+  margin-bottom: 14px;
+  padding: 4px 0 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.today-home-heading {
+  display: grid;
+  gap: 14px;
+}
+
+.today-home-heading .eyebrow {
+  margin-bottom: 7px;
+}
+
+.today-home-heading h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 650;
+}
+
+.quick-add-link {
+  display: inline-flex;
+  width: 100%;
+  min-height: 48px;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 0 16px;
+  border-radius: 6px;
+  background: var(--accent-button);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.quick-add-link:hover {
+  background: var(--accent-strong);
+}
+
+.today-expense-totals {
+  display: grid;
+  gap: 10px;
+}
+
+.today-expense-total {
+  min-width: 0;
+  padding: 14px 16px;
+  border-left: 3px solid var(--accent-strong);
+  background: var(--accent-soft);
+}
+
+.today-expense-total span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.today-expense-total strong {
+  display: block;
+  margin-top: 7px;
+  font-size: 36px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.today-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.today-transactions-section {
+  min-width: 0;
+  margin-bottom: 16px;
+}
+
+.today-transactions-section .recent-list li {
+  grid-template-columns: 34px minmax(0, 1fr) auto;
+  gap: 9px;
+}
+
 .summary-empty {
   grid-column: 1 / -1;
   min-height: 220px;
@@ -1131,6 +1217,23 @@ a {
   color: var(--muted);
   font-size: 13px;
   line-height: 1.6;
+}
+
+@media (min-width: 761px) {
+  .today-home-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+  }
+
+  .quick-add-link {
+    width: auto;
+  }
+
+  .today-expense-totals {
+    grid-template-columns: repeat(auto-fit, minmax(220px, 280px));
+  }
 }
 
 @keyframes loading-pulse {

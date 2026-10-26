@@ -16,6 +16,11 @@ export type FinancialSummary = {
   net: string;
 };
 
+export type ExpenseSummary = {
+  currencyCode: string;
+  amount: string;
+};
+
 export type MonthlyFinancialEntry = FinancialEntry & {
   occurredOn: string;
 };
@@ -46,6 +51,11 @@ export function summarizeByCurrency(entries: readonly FinancialEntry[]): Financi
       expenses: amounts.expenses.toFixed(2),
       net: amounts.income.minus(amounts.expenses).toFixed(2),
     }));
+}
+
+export function summarizeExpensesByCurrency(entries: readonly FinancialEntry[]): ExpenseSummary[] {
+  return summarizeByCurrency(entries.filter((entry) => entry.type === "expense"))
+    .map((summary) => ({ currencyCode: summary.currencyCode, amount: summary.expenses }));
 }
 
 export function groupAmounts<T extends { amount: string; currencyCode: string }>(

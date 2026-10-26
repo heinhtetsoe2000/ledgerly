@@ -1,6 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { CategoryManager } from "@/components/category-manager";
+import { DailySpendingHome } from "@/components/daily-spending-home";
 import { TransactionManager } from "@/components/transaction-manager";
 import type { Database } from "@/lib/supabase/database.types";
 
@@ -21,6 +22,46 @@ const foodCategory: Category = {
 };
 
 describe("management components", () => {
+  it("shows today's currency-separated expenses and both transaction types", () => {
+    render(
+      <DailySpendingHome
+        date="2026-10-26"
+        hasError={false}
+        transactions={[
+          { id: "expense-usd", type: "expense", amount: 12.5, currency_code: "USD", description: "Lunch" },
+          { id: "expense-eur", type: "expense", amount: 8, currency_code: "EUR", description: "Coffee" },
+          { id: "income-usd", type: "income", amount: 100, currency_code: "USD", description: "Pay" },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("link", { name: "Add transaction" }).getAttribute("href"))
+      .toBe("/transactions#new-transaction-title");
+    expect(screen.getByText("Lunch")).toBeTruthy();
+    expect(screen.getByText("Coffee")).toBeTruthy();
+    expect(screen.getByText("Pay")).toBeTruthy();
+    expect(screen.getAllByText("USD")).toHaveLength(1);
+    expect(screen.getByText("EUR")).toBeTruthy();
+    expect(screen.getByText(/12\.50/, { selector: ".today-expense-total strong" })).toBeTruthy();
+    expect(screen.getByText(/8\.00/, { selector: ".today-expense-total strong" })).toBeTruthy();
+    expect(screen.queryByText(/100\.00/, { selector: ".today-expense-total strong" })).toBeNull();
+  });
+
+  it("shows empty states for a day without transactions", () => {
+    render(<DailySpendingHome date="2026-10-26" hasError={false} transactions={[]} />);
+
+    expect(screen.getByText("No expenses recorded today.")).toBeTruthy();
+    expect(screen.getByText("No transactions recorded today.")).toBeTruthy();
+  });
+
+  it("shows an unavailable state instead of a stale or empty total on query failure", () => {
+    render(<DailySpendingHome date="2026-10-26" hasError transactions={[]} />);
+
+    expect(screen.getByRole("status").textContent).toContain("Today's activity is unavailable");
+    expect(screen.queryByText("No expenses recorded today.")).toBeNull();
+    expect(screen.queryByText("No transactions recorded today.")).toBeNull();
+  });
+
   it("shows a clear empty state for categories", () => {
     render(<CategoryManager categories={[]} />);
 

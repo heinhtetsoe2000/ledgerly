@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { groupAmounts, summarizeByCurrency, summarizeByMonthAndCurrency } from "@/lib/finance";
+import { groupAmounts, summarizeByCurrency, summarizeByMonthAndCurrency, summarizeExpensesByCurrency } from "@/lib/finance";
 
 describe("financial summaries", () => {
   it("keeps income, expenses, and net totals separate by currency", () => {
@@ -16,6 +16,23 @@ describe("financial summaries", () => {
 
   it("returns no monetary totals for an empty period", () => {
     expect(summarizeByCurrency([])).toEqual([]);
+  });
+
+  it("summarizes expenses without combining currencies or including income", () => {
+    expect(summarizeExpensesByCurrency([
+      { amount: "100.00", currencyCode: "USD", type: "income" },
+      { amount: "12.50", currencyCode: "USD", type: "expense" },
+      { amount: "8.00", currencyCode: "EUR", type: "expense" },
+    ])).toEqual([
+      { currencyCode: "EUR", amount: "8.00" },
+      { currencyCode: "USD", amount: "12.50" },
+    ]);
+  });
+
+  it("returns no expense totals when the day has no expenses", () => {
+    expect(summarizeExpensesByCurrency([
+      { amount: "100.00", currencyCode: "USD", type: "income" },
+    ])).toEqual([]);
   });
 
   it("compares months without combining currencies", () => {

@@ -1,6 +1,7 @@
 import { WalletCards } from "lucide-react";
 import Link from "next/link";
 import { connection } from "next/server";
+import { DailySpendingHome } from "@/components/daily-spending-home";
 import { SupabaseConfigStatus } from "@/components/supabase-config-status";
 import { formatCurrencyAmount } from "@/lib/currency";
 import { formatCalendarDate } from "@/lib/dates";
@@ -20,21 +21,42 @@ function monthHref(date: Date): string {
 
 export default async function OverviewPage({ searchParams }: { searchParams: SearchParams }) {
   await connection();
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
   const params = await searchParams;
   const requestedMonth = typeof params.month === "string" && /^\d{4}-\d{2}$/.test(params.month)
     ? params.month
     : "";
   const [year, monthIndex] = requestedMonth
     ? [Number(requestedMonth.slice(0, 4)), Number(requestedMonth.slice(5, 7)) - 1]
-    : [new Date().getUTCFullYear(), new Date().getUTCMonth()];
+    : [now.getUTCFullYear(), now.getUTCMonth()];
   const validMonth = monthIndex >= 0 && monthIndex <= 11 && year >= 1900 && year <= 9999;
-  const selectedMonth = validMonth ? new Date(Date.UTC(year, monthIndex, 1)) : new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), 1));
+  const selectedMonth = validMonth ? new Date(Date.UTC(year, monthIndex, 1)) : new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
   const startDate = `${selectedMonth.getUTCFullYear()}-${String(selectedMonth.getUTCMonth() + 1).padStart(2, "0")}-01`;
   const endDate = new Date(Date.UTC(selectedMonth.getUTCFullYear(), selectedMonth.getUTCMonth() + 1, 0))
     .toISOString().slice(0, 10);
   const previousMonth = new Date(Date.UTC(selectedMonth.getUTCFullYear(), selectedMonth.getUTCMonth() - 1, 1));
   const nextMonth = new Date(Date.UTC(selectedMonth.getUTCFullYear(), selectedMonth.getUTCMonth() + 1, 1));
   const supabase = await createSupabaseServerClient();
+  const todayTransactions = [];
+  let todayTransactionError = false;
+  for (let offset = 0; ; offset += 1000) {
+    const { data, error } = await supabase!
+      .from("transactions")
+      .select("id, type, amount, currency_code, description, occurred_on, category_id")
+      .eq("occurred_on", today)
+      .order("created_at", { ascending: false })
+      .range(offset, offset + 999);
+
+    if (error) {
+      todayTransactionError = true;
+      break;
+    }
+    todayTransactions.push(...(data ?? []));
+    if (!data || data.length < 1000) break;
+  }
+  if (todayTransactionError) todayTransactions.length = 0;
+
   const transactions = [];
   let transactionError = false;
   for (let offset = 0; ; offset += 1000) {
@@ -53,17 +75,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Sea
     transactions.push(...(data ?? []));
     if (!data || data.length < 1000) break;
   }
-
-  if (transactionError) {
-    return (
-      <div>
-        <header className="page-heading">
-          <div><p className="eyebrow">PERSONAL FINANCE</p><h1>Overview</h1></div>
-        </header>
-        <p className="config-notice" role="status">Dashboard data is unavailable until the database migrations are applied.</p>
-      </div>
-    );
-  }
+  if (transactionError) transactions.length = 0;
 
   const entries = transactions.map((row) => ({
     amount: String(row.amount),
@@ -109,8 +121,10 @@ export default async function OverviewPage({ searchParams }: { searchParams: Sea
         </nav>
       </header>
       <SupabaseConfigStatus />
+      <DailySpendingHome date={today} hasError={todayTransactionError} transactions={todayTransactions} />
+      {transactionError && <p className="config-notice" role="status">Monthly dashboard data is unavailable right now.</p>}
       {categoryResult.error && <p className="config-notice" role="status">Category breakdown is unavailable right now.</p>}
-      <section aria-label="Monthly totals by currency" className="summary-grid">
+      {!transactionError && <section aria-label="Monthly totals by currency" className="summary-grid">
         {summaries.length === 0 ? (
           <div className="overview-empty summary-empty">
             <span className="empty-mark"><WalletCards aria-hidden="true" size={28} /></span>
@@ -131,8 +145,8 @@ export default async function OverviewPage({ searchParams }: { searchParams: Sea
             </dl>
           </article>
         ))}
-      </section>
-      {summaries.length > 0 && (
+      </section>}
+      {!transactionError && summaries.length > 0 && (
         <div className="dashboard-grid">
           <section aria-labelledby="category-breakdown-title" className="dashboard-section">
             <div className="section-heading">
@@ -177,7 +191,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Sea
           </section>
         </div>
       )}
-      <section aria-labelledby="recent-transactions-title" className="dashboard-section recent-section">
+      {!transactionError && <section aria-labelledby="recent-transactions-title" className="dashboard-section recent-section">
         <div className="section-heading">
           <h2 id="recent-transactions-title">Recent transactions</h2>
           <Link href="/transactions">View all</Link>
@@ -203,7 +217,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Sea
             ))}
           </ul>
         )}
-      </section>
+      </section>}
     </div>
   );
 }
