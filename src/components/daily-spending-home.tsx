@@ -38,14 +38,8 @@ export function DailySpendingHome({
         <div className="today-home-heading">
           <div>
             <p className="eyebrow"><time dateTime={date}>{formatCalendarDate(date, "en-US")}</time></p>
-            <h2 id="today-expenses-title">Today&apos;s expenses</h2>
+            <h1 id="today-expenses-title">Today&apos;s expenses</h1>
           </div>
-          <HomeTransactionDialog
-            categories={categories}
-            currency={currency}
-            disabled={!canAddTransaction}
-            today={date}
-          />
         </div>
         {hasError ? (
           <p className="config-notice" role="status">Today&apos;s activity is unavailable right now.</p>
@@ -61,6 +55,12 @@ export function DailySpendingHome({
             ))}
           </div>
         )}
+        <HomeTransactionDialog
+          categories={categories}
+          currency={currency}
+          disabled={!canAddTransaction}
+          today={date}
+        />
       </section>
       <section aria-labelledby="today-transactions-title" className="dashboard-section today-transactions-section">
         <div className="section-heading">

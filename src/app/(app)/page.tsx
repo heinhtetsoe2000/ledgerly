@@ -33,13 +33,6 @@ export default async function OverviewPage() {
 
   return (
     <div>
-      <header className="page-heading">
-        <div>
-          <p className="eyebrow">PERSONAL FINANCE</p>
-          <h1>Overview</h1>
-          <p className="page-description">Your financial activity, gathered in one place.</p>
-        </div>
-      </header>
       <SupabaseConfigStatus />
       <DailySpendingHome
         canAddTransaction={!categoriesResult.error && !profileResult.error}

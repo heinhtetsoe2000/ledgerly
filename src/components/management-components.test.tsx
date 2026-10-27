@@ -2,7 +2,8 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { CategoryManager } from "@/components/category-manager";
 import { DailySpendingHome } from "@/components/daily-spending-home";
-import { TransactionManager } from "@/components/transaction-manager";
+import { TransactionForm, TransactionManager } from "@/components/transaction-manager";
+import { TransactionSummary } from "@/components/transaction-summary";
 import type { Database } from "@/lib/supabase/database.types";
 
 afterEach(cleanup);
@@ -38,7 +39,8 @@ describe("management components", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Add transaction" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Add expense" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Add income" })).toBeTruthy();
     expect(screen.getByText("Lunch")).toBeTruthy();
     expect(screen.getByText("Coffee")).toBeTruthy();
     expect(screen.getByText("Pay")).toBeTruthy();
@@ -63,6 +65,26 @@ describe("management components", () => {
 
     expect(screen.getByText("No expenses recorded today.")).toBeTruthy();
     expect(screen.getByText("No transactions recorded today.")).toBeTruthy();
+  });
+
+  it("shows transaction balances without combining currencies", () => {
+    render(
+      <TransactionSummary
+        hasError={false}
+        summaries={[
+          { currencyCode: "EUR", income: "100.00", expenses: "45.00", net: "55.00" },
+          { currencyCode: "USD", income: "0.00", expenses: "20.00", net: "-20.00" },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("region", { name: "Transaction summary" })).toBeTruthy();
+    expect(screen.getByText("EUR", { selector: ".transaction-summary-currency" })).toBeTruthy();
+    expect(screen.getByText("USD", { selector: ".transaction-summary-currency" })).toBeTruthy();
+    expect(screen.getByText("€55.00")).toBeTruthy();
+    expect(screen.getByText("-$20.00")).toBeTruthy();
+    expect(screen.getByText("€100.00")).toBeTruthy();
+    expect(screen.getByText("$20.00")).toBeTruthy();
   });
 
   it("shows an unavailable state instead of a stale or empty total on query failure", () => {
@@ -91,13 +113,16 @@ describe("management components", () => {
 
   it("defaults new transactions to the profile currency and shows empty history", () => {
     render(
-      <TransactionManager
-        categories={[foodCategory]}
-        currency="EUR"
-        today="2026-10-25"
-        totalCount={0}
-        transactions={[]}
-      />,
+      <>
+        <TransactionForm categories={[foodCategory]} currency="EUR" today="2026-10-25" />
+        <TransactionManager
+          categories={[foodCategory]}
+          currency="EUR"
+          today="2026-10-25"
+          totalCount={0}
+          transactions={[]}
+        />
+      </>,
     );
 
     expect(screen.getByLabelText("Currency")).toHaveProperty("value", "EUR");

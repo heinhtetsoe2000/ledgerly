@@ -31,7 +31,7 @@ function Navigation() {
         const isActive = pathname === href || (href !== "/" && pathname.startsWith(`${href}/`));
 
         return (
-          <Link aria-current={isActive ? "page" : undefined} href={href} key={href}>
+          <Link aria-current={isActive ? "page" : undefined} aria-label={label} href={href} key={href}>
             <Icon aria-hidden="true" size={18} strokeWidth={1.8} />
             <span>{label}</span>
           </Link>

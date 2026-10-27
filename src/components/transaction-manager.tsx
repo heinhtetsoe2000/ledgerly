@@ -19,12 +19,16 @@ const initialState: TransactionActionState = { status: "idle" };
 export function TransactionForm({
   categories,
   currency,
+  hideTypeAndCurrency = false,
+  initialType = "expense",
   today,
   transaction,
   onSaved,
 }: {
   categories: Category[];
   currency: string;
+  hideTypeAndCurrency?: boolean;
+  initialType?: Transaction["type"];
   today: string;
   transaction?: Transaction;
   onSaved?: () => void;
@@ -37,20 +41,27 @@ export function TransactionForm({
     if (nextState.status === "success") onSaved?.();
     return nextState;
   }, initialState);
-  const [type, setType] = useState<Transaction["type"]>(transaction?.type ?? "expense");
+  const [type, setType] = useState<Transaction["type"]>(transaction?.type ?? initialType);
   const filteredCategories = categories.filter((category) => category.type === type);
 
   return (
     <form action={action} className="transaction-form">
       {transaction && <input name="id" type="hidden" value={transaction.id} />}
-      <label className="field-label">
-        Type
-        <select name="type" onChange={(event) => setType(event.target.value as Transaction["type"])}
-          value={type}>
-          <option value="expense">Expense</option>
-          <option value="income">Income</option>
-        </select>
-      </label>
+      {hideTypeAndCurrency ? (
+        <>
+          <input name="type" type="hidden" value={type} />
+          <input name="currencyCode" type="hidden" value={transaction?.currency_code ?? currency} />
+        </>
+      ) : (
+        <label className="field-label">
+          Type
+          <select name="type" onChange={(event) => setType(event.target.value as Transaction["type"])}
+            value={type}>
+            <option value="expense">Expense</option>
+            <option value="income">Income</option>
+          </select>
+        </label>
+      )}
       <div className="transaction-form-row">
         <label className="field-label">
           Amount
@@ -66,18 +77,20 @@ export function TransactionForm({
             type="number"
           />
         </label>
-        <label className="field-label">
-          Currency
-          <input
-            autoCapitalize="characters"
-            defaultValue={transaction?.currency_code ?? currency}
-            maxLength={3}
-            minLength={3}
-            name="currencyCode"
-            pattern="[A-Za-z]{3}"
-            required
-          />
-        </label>
+        {!hideTypeAndCurrency && (
+          <label className="field-label">
+            Currency
+            <input
+              autoCapitalize="characters"
+              defaultValue={transaction?.currency_code ?? currency}
+              maxLength={3}
+              minLength={3}
+              name="currencyCode"
+              pattern="[A-Za-z]{3}"
+              required
+            />
+          </label>
+        )}
       </div>
       <label className="field-label">
         Description
@@ -138,7 +151,7 @@ function TransactionItem({
         </span>
         <div className="transaction-description">
           <strong>{transaction.description}</strong>
-          <span>{categoryName} · {formatCalendarDate(transaction.occurred_on)}</span>
+          <span>{transaction.type === "income" ? "Income" : "Expense"} · {categoryName} · {formatCalendarDate(transaction.occurred_on)}</span>
         </div>
         <strong className={`transaction-amount ${transaction.type}`}>
           {transaction.type === "expense" ? "−" : "+"}
@@ -185,10 +198,6 @@ export function TransactionManager({
 
   return (
     <div className="transaction-manager">
-      <section aria-labelledby="new-transaction-title" className="settings-section">
-        <h2 id="new-transaction-title">Add a transaction</h2>
-        <TransactionForm categories={categories} currency={currency} today={today} />
-      </section>
       <section aria-labelledby="transaction-history-title" className="transaction-history">
         <div className="section-heading">
           <h2 id="transaction-history-title">Transaction history</h2>

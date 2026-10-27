@@ -34,7 +34,8 @@ function localSupabaseEnvironment(): Record<string, string> {
   };
 }
 
-const baseURL = "http://localhost:3000";
+const port = 3002;
+const baseURL = `http://localhost:${port}`;
 
 export default defineConfig({
   testDir: "./e2e",
@@ -48,10 +49,13 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   webServer: {
-    command: "npm run dev",
+    command: `npm run dev -- --port ${port}`,
     url: `${baseURL}/sign-in`,
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: false,
     timeout: 120_000,
-    env: localSupabaseEnvironment(),
+    env: {
+      ...localSupabaseEnvironment(),
+      PLAYWRIGHT_TEST: "true",
+    },
   },
 });
