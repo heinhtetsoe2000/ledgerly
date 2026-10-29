@@ -161,6 +161,29 @@ test("mobile finance workflows, transaction edit, filters, reports, export, and 
     });
   });
   expect(mobileNavFits).toBe(true);
+  const activeMobileLink = mobilePrimaryNav.locator('a[aria-current="page"]');
+  await expect(activeMobileLink).toHaveCSS("box-shadow", "none");
+  const activeMobileColor = await activeMobileLink.evaluate((link) => getComputedStyle(link).color);
+  const inactiveMobileColor = await mobilePrimaryNav.locator('a:not([aria-current="page"])').first().evaluate(
+    (link) => getComputedStyle(link).color,
+  );
+  expect(activeMobileColor).not.toBe(inactiveMobileColor);
+  expect(await page.locator('meta[name="viewport"]').getAttribute("content")).toContain("viewport-fit=cover");
+  const mobileNavGeometry = await page.evaluate(() => {
+    window.scrollTo(0, document.documentElement.scrollHeight);
+    const nav = document.querySelector<HTMLElement>(".mobile-nav")!;
+    const finalContent = document.querySelector<HTMLElement>(".page-content")!.lastElementChild as HTMLElement;
+    const navBounds = nav.getBoundingClientRect();
+    return {
+      position: getComputedStyle(nav).position,
+      bottomGap: window.innerHeight - navBounds.bottom,
+      navTop: navBounds.top,
+      finalContentBottom: finalContent.getBoundingClientRect().bottom,
+    };
+  });
+  expect(mobileNavGeometry.position).toBe("fixed");
+  expect(mobileNavGeometry.bottomGap).toBe(0);
+  expect(mobileNavGeometry.finalContentBottom).toBeLessThanOrEqual(mobileNavGeometry.navTop);
 
   await page.goto("/settings");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
@@ -272,8 +295,9 @@ test("mobile finance workflows, transaction edit, filters, reports, export, and 
 
   const yesterdayDate = new Date(`${today}T00:00:00.000Z`);
   yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1);
+  const yesterdayDescription = `E2E yesterday transaction ${crypto.randomUUID()}`;
   await page.goto("/");
-  await addHomeTransaction(page, "expense", "8.00", "E2E yesterday transaction", yesterdayDate.toISOString().slice(0, 10));
+  await addHomeTransaction(page, "expense", "8.00", yesterdayDescription, yesterdayDate.toISOString().slice(0, 10));
   await addHomeTransaction(page, "income", "10.00", "E2E USD income", today);
   await page.goto("/transactions");
   await expect(page.locator(".transaction-item").filter({ hasText: "E2E USD income" })).toBeVisible();
@@ -330,6 +354,9 @@ test("mobile finance workflows, transaction edit, filters, reports, export, and 
   await page.goto("/");
   await page.setViewportSize({ width: 1280, height: 900 });
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(1280);
+  await expect(page.locator(".sidebar")).toBeVisible();
+  await expect(page.locator(".sidebar").getByRole("navigation", { name: "Primary navigation" })).toBeVisible();
+  await expect(page.locator(".mobile-nav")).toBeHidden();
   await expect(page.getByRole("heading", { name: "Today's expenses", level: 1 })).toBeVisible();
   await expect(page.getByRole("button", { name: "Add expense" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Add income" })).toBeVisible();
@@ -517,10 +544,10 @@ test("mobile finance workflows, transaction edit, filters, reports, export, and 
   await transactionRow.getByRole("button", { name: "Delete transaction" }).click();
   await expect(transactionRow).toHaveCount(0);
 
-  await page.goto("/transactions?search=E2E%20yesterday%20transaction");
+  await page.goto(`/transactions?search=${encodeURIComponent(yesterdayDescription)}`);
   await expect(page.locator(".transaction-filters-disclosure")).toHaveAttribute("open", "");
   const yesterdayTransactionRow = page.locator(".transaction-item").filter({
-    has: page.locator(".transaction-summary .transaction-description strong", { hasText: "E2E yesterday transaction" }),
+    has: page.locator(".transaction-summary .transaction-description strong", { hasText: yesterdayDescription }),
   });
   await expect(yesterdayTransactionRow).toBeVisible();
   await yesterdayTransactionRow.locator(".transaction-details > summary").click();
