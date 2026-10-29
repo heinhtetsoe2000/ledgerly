@@ -56,6 +56,11 @@ function Brand({ compact = false }: { compact?: boolean }) {
 }
 
 export function AppShell({ children, userEmail }: { children: ReactNode; userEmail: string }) {
+  const pathname = usePathname();
+  const currentPageLabel = navigationItems.find(({ href }) => (
+    pathname === href || (href !== "/" && pathname.startsWith(`${href}/`))
+  ))?.label ?? "Overview";
+
   return (
     <div className="app-shell">
       <aside aria-label="Application sidebar" className="sidebar">
@@ -66,7 +71,7 @@ export function AppShell({ children, userEmail }: { children: ReactNode; userEma
       <div className="app-main">
         <header className="topbar">
           <div className="mobile-brand"><Brand compact /></div>
-          <span className="topbar-label">Personal finance workspace</span>
+          <span className="topbar-label">{currentPageLabel}</span>
           <div className="topbar-actions">
             <ThemeToggle />
             <div className="account-chip">

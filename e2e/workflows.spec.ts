@@ -48,42 +48,128 @@ async function addHomeTransaction(
 test("authentication screens fit mobile and desktop viewports", async ({ page }) => {
   const routes = ["/sign-in", "/sign-up", "/forgot-password", "/reset-password"];
 
-  for (const width of [360, 390]) {
-    await page.setViewportSize({ width, height: 844 });
+  for (const colorScheme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme });
+    for (const width of [360, 390]) {
+      await page.setViewportSize({ width, height: 844 });
+      for (const route of routes) {
+        await page.goto(route);
+        await expect(page.locator(".auth-card")).toBeVisible();
+        await expect(page.locator(".auth-card-header")).toBeVisible();
+        await expect(page.locator(".auth-card-header + .auth-form")).toBeVisible();
+        expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+        if (colorScheme === "dark") {
+          await expect(page.locator("html")).toHaveClass(/dark/);
+        } else {
+          await expect(page.locator("html")).not.toHaveClass(/dark/);
+        }
+
+        const mobileMetrics = await page.locator(".auth-card").evaluate((card) => {
+          const inputs = [...card.querySelectorAll("input")];
+          const targets = [...card.querySelectorAll<HTMLElement>("a, button, input")];
+          return {
+            inputFontSizes: inputs.map((input) => Number.parseFloat(getComputedStyle(input).fontSize)),
+            targetSizes: targets.map((target) => {
+              const bounds = target.getBoundingClientRect();
+              return { width: bounds.width, height: bounds.height };
+            }),
+          };
+        });
+
+        expect(mobileMetrics.inputFontSizes.length).toBeGreaterThan(0);
+        expect(mobileMetrics.inputFontSizes.every((size) => size >= 16)).toBe(true);
+        expect(mobileMetrics.targetSizes.every(({ width: targetWidth, height }) => (
+          targetWidth >= 44 && height >= 44
+        ))).toBe(true);
+      }
+    }
+
+    await page.setViewportSize({ width: 640, height: 900 });
     for (const route of routes) {
       await page.goto(route);
-      await expect(page.locator(".auth-card")).toBeVisible();
-      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
-
-      const mobileMetrics = await page.locator(".auth-card").evaluate((card) => {
-        const inputs = [...card.querySelectorAll("input")];
-        const targets = [...card.querySelectorAll<HTMLElement>("a, button, input")];
-        return {
-          inputFontSizes: inputs.map((input) => Number.parseFloat(getComputedStyle(input).fontSize)),
-          targetSizes: targets.map((target) => {
-            const bounds = target.getBoundingClientRect();
-            return { width: bounds.width, height: bounds.height };
-          }),
-        };
-      });
-
-      expect(mobileMetrics.inputFontSizes.length).toBeGreaterThan(0);
-      expect(mobileMetrics.inputFontSizes.every((size) => size >= 16)).toBe(true);
-      expect(mobileMetrics.targetSizes.every(({ width: targetWidth, height }) => (
-        targetWidth >= 44 && height >= 44
-      ))).toBe(true);
+      const desktopMetrics = await page.locator(".auth-card").evaluate((card) => ({
+        width: card.getBoundingClientRect().width,
+        inputFontSize: Number.parseFloat(getComputedStyle(card.querySelector("input")!).fontSize),
+      }));
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(640);
+      expect(desktopMetrics.width).toBeLessThanOrEqual(420);
+      expect(desktopMetrics.inputFontSize).toBe(13);
     }
   }
+});
 
-  await page.setViewportSize({ width: 640, height: 900 });
-  await page.goto("/sign-in");
-  const desktopMetrics = await page.locator(".auth-card").evaluate((card) => ({
-    width: card.getBoundingClientRect().width,
-    inputFontSize: Number.parseFloat(getComputedStyle(card.querySelector("input")!).fontSize),
-  }));
-  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(640);
-  expect(desktopMetrics.width).toBeLessThanOrEqual(420);
-  expect(desktopMetrics.inputFontSize).toBe(13);
+test("finance pages keep their layout across viewports and system themes", async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 844 });
+  await signUp(page);
+
+  const routes = [
+    { path: "/", heading: "Today's expenses", label: "Overview" },
+    { path: "/transactions", heading: "Transactions", label: "Transactions" },
+    { path: "/reports", heading: "Financial Analysis", label: "Financial Analysis" },
+    { path: "/categories", heading: "Categories", label: "Categories" },
+    { path: "/settings", heading: "Settings", label: "Settings" },
+  ];
+  const themeTokens = {
+    light: { background: "rgb(255, 255, 255)", foreground: "rgb(23, 26, 24)", accent: "rgb(15, 118, 110)" },
+    dark: { background: "rgb(0, 0, 0)", foreground: "rgb(245, 245, 245)", accent: "rgb(94, 234, 212)" },
+  };
+
+  for (const colorScheme of ["light", "dark"] as const) {
+    await page.emulateMedia({ colorScheme });
+    for (const width of [360, 1280]) {
+      await page.setViewportSize({ width, height: 844 });
+      for (const route of routes) {
+        await page.goto(route.path);
+        await expect(page.getByRole("heading", { name: route.heading, level: 1 })).toBeVisible();
+        await expect(page.locator(".topbar-label")).toHaveText(route.label);
+        if (colorScheme === "dark") {
+          await expect(page.locator("html")).toHaveClass(/dark/);
+        } else {
+          await expect(page.locator("html")).not.toHaveClass(/dark/);
+        }
+
+        const pageMetrics = await page.evaluate(() => {
+          const styles = getComputedStyle(document.documentElement);
+          const resolveColor = (value: string) => {
+            const probe = document.createElement("span");
+            probe.style.color = value;
+            document.body.append(probe);
+            const color = getComputedStyle(probe).color;
+            probe.remove();
+            return color;
+          };
+          return {
+            documentWidth: document.documentElement.scrollWidth,
+            background: resolveColor(styles.getPropertyValue("--background")),
+            foreground: resolveColor(styles.getPropertyValue("--foreground")),
+            accent: resolveColor(styles.getPropertyValue("--accent")),
+          };
+        });
+        expect(pageMetrics.documentWidth).toBeLessThanOrEqual(width);
+        expect(pageMetrics).toMatchObject(themeTokens[colorScheme]);
+
+        if (width < 640) {
+          const nav = page.locator(".mobile-nav");
+          await expect(nav).toBeVisible();
+          const navTargetsFit = await nav.locator("a").evaluateAll((links) => links.every((link) => {
+            const bounds = link.getBoundingClientRect();
+            return bounds.width >= 44 && bounds.height >= 44;
+          }));
+          expect(navTargetsFit).toBe(true);
+          const bottomClearance = await page.evaluate(() => {
+            window.scrollTo(0, document.documentElement.scrollHeight);
+            const navBounds = document.querySelector<HTMLElement>(".mobile-nav")!.getBoundingClientRect();
+            const contentBounds = document.querySelector<HTMLElement>(".page-content")!.lastElementChild!.getBoundingClientRect();
+            return contentBounds.bottom <= navBounds.top;
+          });
+          expect(bottomClearance).toBe(true);
+        } else {
+          await expect(page.locator(".sidebar")).toBeVisible();
+          await expect(page.locator(".mobile-nav")).toBeHidden();
+        }
+      }
+    }
+  }
 });
 
 test("registration, persistent session, sign-out, and protected redirect", async ({ page }) => {
@@ -127,6 +213,7 @@ test("registration, persistent session, sign-out, and protected redirect", async
 
   await page.reload();
   await expect(page.getByRole("heading", { name: "Today's expenses", level: 1 })).toBeVisible();
+  await expect(page.locator(".topbar-label")).toHaveText("Overview");
   await expect(page.getByRole("button", { name: "Sign out" })).toBeVisible();
 
   await page.getByRole("button", { name: "Sign out" }).click();
@@ -187,6 +274,8 @@ test("mobile finance workflows, transaction edit, filters, reports, export, and 
 
   await page.goto("/settings");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await expect(page.getByRole("region", { name: "Profile", exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Appearance" })).toBeVisible();
   await page.locator("#settings-name").fill("E2E Updated Name");
   await page.locator("#settings-currency").fill("EUR");
   await page.locator("#settings-theme").selectOption("dark");
@@ -195,6 +284,7 @@ test("mobile finance workflows, transaction edit, filters, reports, export, and 
 
   await page.goto("/categories");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await expect(page.getByRole("region", { name: "Category management" })).toBeVisible();
   const categoryForm = page.locator(".category-form").first();
   await categoryForm.locator('input[name="name"]').fill("E2E Test Category");
   await categoryForm.locator('select[name="type"]').selectOption("expense");
@@ -383,10 +473,38 @@ test("mobile finance workflows, transaction edit, filters, reports, export, and 
 
   await page.goto(`/reports?startDate=${today}&endDate=${today}`);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
+  await expect(page.locator(".topbar-label")).toHaveText("Financial Analysis");
   await expect(page.getByRole("heading", { name: "Financial Analysis", level: 1 })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Monthly comparison by currency" })).toBeVisible();
+  await expect(page.locator(".report-controls .report-range-form")).toBeVisible();
+  await expect(page.locator(".report-controls .report-export")).toBeVisible();
   await expect(page.locator(".report-table")).toContainText("EUR");
   await expect(page.locator(".report-table")).toContainText("USD");
+  const reportCardsRetainLabels = await page.locator(".report-table tbody tr").evaluateAll((rows) => (
+    rows.length > 0 && rows.every((row) => {
+      const cells = [...row.querySelectorAll<HTMLElement>("th, td")];
+      return getComputedStyle(row).display === "grid" && cells.every((cell) => {
+        const bounds = cell.getBoundingClientRect();
+        const labelContent = getComputedStyle(cell, "::before").content;
+        return cell.dataset.label !== undefined
+          && labelContent !== "none"
+          && labelContent !== "normal"
+          && getComputedStyle(cell).whiteSpace === "nowrap"
+          && bounds.left >= 0
+          && bounds.right <= window.innerWidth;
+      });
+    })
+  ));
+  expect(reportCardsRetainLabels).toBe(true);
+  const reportControlsFitPhone = await page.locator(".report-controls").evaluate((region) => {
+    const controls = [...region.querySelectorAll<HTMLElement>("input, button, a")];
+    return region.scrollWidth <= region.clientWidth && controls.every((control) => {
+      const bounds = control.getBoundingClientRect();
+      return bounds.height >= 44
+        && (control.tagName !== "INPUT" || Number.parseFloat(getComputedStyle(control).fontSize) >= 16);
+    });
+  });
+  expect(reportControlsFitPhone).toBe(true);
   const reportCsv = await page.evaluate(async () => {
     const response = await fetch(`/transactions/export${location.search}`, { credentials: "same-origin" });
     return { status: response.status, content: await response.text() };
@@ -405,8 +523,9 @@ test("mobile finance workflows, transaction edit, filters, reports, export, and 
   await expect(page.getByRole("heading", { name: "No transactions in this range" })).toBeVisible();
 
   await page.goto("/settings");
-  await expect(page.locator("#settings-currency")).toHaveCount(1);
-  await page.locator("#settings-currency").fill("GBP");
+  const visibleSettingsCurrency = page.locator(".settings-form:visible #settings-currency");
+  await expect(visibleSettingsCurrency).toHaveCount(1);
+  await visibleSettingsCurrency.fill("GBP");
   await page.getByRole("button", { name: "Save settings" }).click();
   await expect(page.getByRole("status")).toContainText("Settings saved.");
 
@@ -545,10 +664,11 @@ test("mobile finance workflows, transaction edit, filters, reports, export, and 
   await expect(transactionRow).toHaveCount(0);
 
   await page.goto(`/transactions?search=${encodeURIComponent(yesterdayDescription)}`);
-  await expect(page.locator(".transaction-filters-disclosure")).toHaveAttribute("open", "");
-  const yesterdayTransactionRow = page.locator(".transaction-item").filter({
-    has: page.locator(".transaction-summary .transaction-description strong", { hasText: yesterdayDescription }),
-  });
+  const visibleTransactionFilters = page.locator("main .transaction-filters-disclosure:visible");
+  await expect(visibleTransactionFilters).toHaveCount(1);
+  await expect(visibleTransactionFilters).toHaveAttribute("open", "");
+  const yesterdayTransactionRow = page.locator("main .transaction-item:visible")
+    .filter({ hasText: yesterdayDescription });
   await expect(yesterdayTransactionRow).toBeVisible();
   await yesterdayTransactionRow.locator(".transaction-details > summary").click();
   await yesterdayTransactionRow.getByRole("button", { name: "Delete transaction" }).click();

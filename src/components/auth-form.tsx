@@ -151,12 +151,14 @@ export function AuthForm({ mode }: { mode: AuthMode }) {
 
   return (
     <section aria-labelledby="auth-title" className="auth-card">
-      <Link aria-label="Ledgerly home" className="auth-brand" href="/sign-in">
-        <span className="brand-mark">L</span>
-        <span>Ledgerly</span>
-      </Link>
-      <h1 id="auth-title">{content.title}</h1>
-      <p className="auth-subtitle">{content.subtitle}</p>
+      <header className="auth-card-header">
+        <Link aria-label="Ledgerly home" className="auth-brand" href="/sign-in">
+          <span className="brand-mark">L</span>
+          <span>Ledgerly</span>
+        </Link>
+        <h1 id="auth-title">{content.title}</h1>
+        <p className="auth-subtitle">{content.subtitle}</p>
+      </header>
       <form className="auth-form" onSubmit={handleSubmit}>
         {isSignUp && (
           <label className="field-label" htmlFor="displayName">

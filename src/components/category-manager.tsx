@@ -125,7 +125,7 @@ function CategoryItem({ category }: { category: Category }) {
 
 export function CategoryManager({ categories }: { categories: Category[] }) {
   return (
-    <div className="category-manager">
+    <section aria-label="Category management" className="category-manager">
       <section aria-labelledby="new-category-title" className="settings-section">
         <h2 id="new-category-title">Add a category</h2>
         <CategoryForm />
@@ -143,6 +143,6 @@ export function CategoryManager({ categories }: { categories: Category[] }) {
           </div>
         )}
       </section>
-    </div>
+    </section>
   );
 }

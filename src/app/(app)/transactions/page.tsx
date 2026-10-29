@@ -122,13 +122,15 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
       ) : (
         <>
           {filterError && <p className="config-notice" role="alert">{filterError}</p>}
-          <TransactionSummary hasError={summaryError} summaries={summaries} />
-          <HomeTransactionDialog
-            categories={categoriesResult.data ?? []}
-            currency={profileResult.data?.default_currency ?? "USD"}
-            disabled={Boolean(categoriesResult.error || profileResult.error)}
-            today={new Date().toISOString().slice(0, 10)}
-          />
+          <section aria-label="Transaction overview" className="transaction-overview">
+            <TransactionSummary hasError={summaryError} summaries={summaries} />
+            <HomeTransactionDialog
+              categories={categoriesResult.data ?? []}
+              currency={profileResult.data?.default_currency ?? "USD"}
+              disabled={Boolean(categoriesResult.error || profileResult.error)}
+              today={new Date().toISOString().slice(0, 10)}
+            />
+          </section>
           <details className="transaction-filters-disclosure" open={hasActiveFilters}>
             <summary className="transaction-filters-toggle">
               <Filter aria-hidden="true" size={18} />

@@ -39,7 +39,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
           <div><p className="eyebrow">FINANCIAL ANALYSIS</p><h1>Financial Analysis</h1></div>
         </header>
         <p className="config-notice" role="alert">Select a valid date range. The end date must be on or after the start date.</p>
-        <DateRangeForm startDate={startDate} endDate={endDate} />
+        <div className="report-controls">
+          <DateRangeForm startDate={startDate} endDate={endDate} />
+        </div>
       </div>
     );
   }
@@ -61,7 +63,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
           <header className="page-heading">
             <div><p className="eyebrow">FINANCIAL ANALYSIS</p><h1>Financial Analysis</h1></div>
           </header>
-          <DateRangeForm startDate={startDate} endDate={endDate} />
+          <div className="report-controls">
+            <DateRangeForm startDate={startDate} endDate={endDate} />
+          </div>
           <p className="config-notice" role="status">Report data is unavailable until the database migrations are applied.</p>
         </div>
       );
@@ -103,9 +107,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
           <h1>Financial Analysis</h1>
           <p className="page-description">Review trends across an inclusive calendar date range.</p>
         </div>
-        <Link className="report-export" href={exportHref}>Export CSV</Link>
       </header>
-      <DateRangeForm startDate={startDate} endDate={endDate} />
+      <div className="report-controls">
+        <DateRangeForm startDate={startDate} endDate={endDate} />
+        <Link className="report-export" href={exportHref}>Export CSV</Link>
+      </div>
       {categoryError && <p className="config-notice" role="status">Category names are unavailable for this report.</p>}
       {rows.length === 0 ? (
         <section aria-label="Empty report" className="overview-empty report-empty">
@@ -121,15 +127,15 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
             <div className="section-heading"><h2 id="monthly-comparison-title">Monthly comparison by currency</h2></div>
             <div className="report-table-wrap">
               <table className="report-table">
-                <thead><tr><th>Month</th><th>Currency</th><th>Income</th><th>Expenses</th><th>Net</th></tr></thead>
+                <thead><tr><th scope="col">Month</th><th scope="col">Currency</th><th scope="col">Income</th><th scope="col">Expenses</th><th scope="col">Net</th></tr></thead>
                 <tbody>
                   {monthlySummaries.map((summary) => (
                     <tr key={`${summary.month}-${summary.currencyCode}`}>
-                      <th scope="row">{monthLabel(summary.month)}</th>
-                      <td>{summary.currencyCode}</td>
-                      <td className="positive">{formatCurrencyAmount(summary.income, summary.currencyCode)}</td>
-                      <td className="negative">{formatCurrencyAmount(summary.expenses, summary.currencyCode)}</td>
-                      <td>{formatCurrencyAmount(summary.net, summary.currencyCode)}</td>
+                      <th data-label="Month" scope="row">{monthLabel(summary.month)}</th>
+                      <td data-label="Currency">{summary.currencyCode}</td>
+                      <td className="positive" data-label="Income">{formatCurrencyAmount(summary.income, summary.currencyCode)}</td>
+                      <td className="negative" data-label="Expenses">{formatCurrencyAmount(summary.expenses, summary.currencyCode)}</td>
+                      <td data-label="Net">{formatCurrencyAmount(summary.net, summary.currencyCode)}</td>
                     </tr>
                   ))}
                 </tbody>
