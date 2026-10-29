@@ -4,6 +4,7 @@ import { TransactionSummary } from "@/components/transaction-summary";
 import { ChevronDown, Filter } from "lucide-react";
 import Link from "next/link";
 import { connection } from "next/server";
+import { formatCalendarDate } from "@/lib/dates";
 import { summarizeByCurrency, type FinancialEntry } from "@/lib/finance";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
@@ -18,6 +19,16 @@ export const instant = false;
 
 function firstValue(value: string | string[] | undefined): string {
   return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+}
+
+function formatSummaryPeriod(startDate?: string, endDate?: string): string {
+  if (!startDate && !endDate) return "All dates";
+  if (startDate && endDate && startDate === endDate) return formatCalendarDate(startDate, "en-GB");
+  if (startDate && endDate) {
+    return `${formatCalendarDate(startDate, "en-GB")} - ${formatCalendarDate(endDate, "en-GB")}`;
+  }
+  if (startDate) return `From ${formatCalendarDate(startDate, "en-GB")}`;
+  return `Through ${formatCalendarDate(endDate!, "en-GB")}`;
 }
 
 export default async function TransactionsPage({ searchParams }: { searchParams: SearchParams }) {
@@ -123,7 +134,11 @@ export default async function TransactionsPage({ searchParams }: { searchParams:
         <>
           {filterError && <p className="config-notice" role="alert">{filterError}</p>}
           <section aria-label="Transaction overview" className="transaction-overview">
-            <TransactionSummary hasError={summaryError} summaries={summaries} />
+            <TransactionSummary
+              hasError={summaryError}
+              periodLabel={formatSummaryPeriod(filters.startDate, filters.endDate)}
+              summaries={summaries}
+            />
             <HomeTransactionDialog
               categories={categoriesResult.data ?? []}
               currency={profileResult.data?.default_currency ?? "USD"}

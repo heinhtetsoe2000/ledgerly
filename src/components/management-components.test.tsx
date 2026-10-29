@@ -32,9 +32,9 @@ describe("management components", () => {
         date="2026-10-26"
         hasError={false}
         transactions={[
-          { id: "expense-usd", type: "expense", amount: 12.5, currency_code: "USD", description: "Lunch" },
-          { id: "expense-eur", type: "expense", amount: 8, currency_code: "EUR", description: "Coffee" },
-          { id: "income-usd", type: "income", amount: 100, currency_code: "USD", description: "Pay" },
+          { id: "expense-usd", type: "expense", amount: 12.5, currency_code: "USD", description: "Lunch", category_id: null },
+          { id: "expense-eur", type: "expense", amount: 8, currency_code: "EUR", description: "Coffee", category_id: null },
+          { id: "income-usd", type: "income", amount: 100, currency_code: "USD", description: "Pay", category_id: null },
         ]}
       />,
     );
@@ -46,9 +46,14 @@ describe("management components", () => {
     expect(screen.getByText("Pay")).toBeTruthy();
     expect(screen.getAllByText("USD")).toHaveLength(1);
     expect(screen.getByText("EUR")).toBeTruthy();
-    expect(screen.getByText(/12\.50/, { selector: ".today-expense-total strong" })).toBeTruthy();
-    expect(screen.getByText(/8\.00/, { selector: ".today-expense-total strong" })).toBeTruthy();
-    expect(screen.queryByText(/100\.00/, { selector: ".today-expense-total strong" })).toBeNull();
+    expect(screen.getAllByText("Oct 26, 2026", { selector: ".finance-summary-card-heading > span:first-child" })).toHaveLength(2);
+    expect(screen.getByText(/12\.50/, { selector: ".today-expense-totals .finance-summary-card-amount" })).toBeTruthy();
+    expect(screen.getByText(/8\.00/, { selector: ".today-expense-totals .finance-summary-card-amount" })).toBeTruthy();
+    expect(screen.queryByText(/100\.00/, { selector: ".today-expense-totals .finance-summary-card-amount" })).toBeNull();
+    expect(screen.getAllByText("Income", { selector: ".finance-summary-card-metrics dt" })).toHaveLength(2);
+    expect(screen.getAllByText("Net today", { selector: ".finance-summary-card-metrics dt" })).toHaveLength(2);
+    expect(screen.getByText("$100.00", { selector: ".finance-summary-card-metrics dd" })).toBeTruthy();
+    expect(screen.getByText("$87.50", { selector: ".finance-summary-card-metrics dd" })).toBeTruthy();
   });
 
   it("shows empty states for a day without transactions", () => {
@@ -62,7 +67,6 @@ describe("management components", () => {
         transactions={[]}
       />,
     );
-
     expect(screen.getByText("No expenses recorded today.")).toBeTruthy();
     expect(screen.getByText("No transactions recorded today.")).toBeTruthy();
   });
@@ -71,6 +75,7 @@ describe("management components", () => {
     render(
       <TransactionSummary
         hasError={false}
+        periodLabel="Oct 26, 2026"
         summaries={[
           { currencyCode: "EUR", income: "100.00", expenses: "45.00", net: "55.00" },
           { currencyCode: "USD", income: "0.00", expenses: "20.00", net: "-20.00" },
@@ -79,8 +84,9 @@ describe("management components", () => {
     );
 
     expect(screen.getByRole("region", { name: "Transaction summary" })).toBeTruthy();
-    expect(screen.getByText("EUR", { selector: ".transaction-summary-currency" })).toBeTruthy();
-    expect(screen.getByText("USD", { selector: ".transaction-summary-currency" })).toBeTruthy();
+    expect(screen.getAllByText("Oct 26, 2026", { selector: ".finance-summary-card-heading > span:first-child" })).toHaveLength(2);
+    expect(screen.getByText("EUR", { selector: ".finance-summary-card-currency" })).toBeTruthy();
+    expect(screen.getByText("USD", { selector: ".finance-summary-card-currency" })).toBeTruthy();
     expect(screen.getByText("€55.00")).toBeTruthy();
     expect(screen.getByText("-$20.00")).toBeTruthy();
     expect(screen.getByText("€100.00")).toBeTruthy();

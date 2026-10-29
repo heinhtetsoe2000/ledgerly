@@ -236,6 +236,8 @@ test("registration, persistent session, sign-out, and protected redirect", async
 test("mobile finance workflows, transaction edit, filters, reports, export, and deletion", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 844 });
   await signUp(page);
+  const categoryName = `E2E Category ${crypto.randomUUID()}`;
+  const editedCategoryName = `${categoryName} Edited`;
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   const mobilePrimaryNav = page.getByRole("navigation", { name: "Primary navigation" });
   await expect(mobilePrimaryNav.getByRole("link")).toHaveCount(5);
@@ -286,18 +288,20 @@ test("mobile finance workflows, transaction edit, filters, reports, export, and 
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   await expect(page.getByRole("region", { name: "Category management" })).toBeVisible();
   const categoryForm = page.locator(".category-form").first();
-  await categoryForm.locator('input[name="name"]').fill("E2E Test Category");
+  await categoryForm.locator('input[name="name"]').fill(categoryName);
   await categoryForm.locator('select[name="type"]').selectOption("expense");
-  await categoryForm.locator('select[name="icon"]').selectOption("tag");
+  await categoryForm.locator('select[name="icon"]').selectOption("utensils");
+  await expect(categoryForm.locator('select[name="icon"]')).toHaveValue("utensils");
   await categoryForm.locator('input[name="color"]').fill("#336699");
   await page.getByRole("button", { name: "Add category" }).click();
   await expect(page.getByRole("status")).toContainText("Category saved.");
-  const categoryRow = page.locator(".category-item").filter({ hasText: "E2E Test Category" });
+  const categoryRow = page.locator(".category-item").filter({ hasText: categoryName });
   await expect(categoryRow).toBeVisible();
+  await expect(categoryRow.locator(".category-icon")).toHaveAttribute("data-icon", "utensils");
   await categoryRow.locator(".category-edit summary").click();
-  await categoryRow.locator('.category-edit input[name="name"]').fill("E2E Edited Category");
+  await categoryRow.locator('.category-edit input[name="name"]').fill(editedCategoryName);
   await categoryRow.getByRole("button", { name: "Save changes" }).click();
-  await expect(page.getByText("E2E Edited Category", { exact: true })).toBeVisible();
+  await expect(page.getByText(editedCategoryName, { exact: true })).toBeVisible();
 
   await page.goto("/");
   const quickAddButton = page.getByRole("button", { name: "Add expense" });
@@ -359,7 +363,7 @@ test("mobile finance workflows, transaction edit, filters, reports, export, and 
   await expect(page.locator(".home-transaction-dialog")).toBeVisible();
   await quickAddForm.locator('input[name="amount"]').fill("23.45");
   await quickAddForm.locator('input[name="description"]').fill("E2E grocery transaction");
-  await quickAddForm.locator('select[name="categoryId"]').selectOption({ label: "E2E Edited Category" });
+  await quickAddForm.locator('select[name="categoryId"]').selectOption({ label: editedCategoryName });
   await quickAddForm.locator('input[name="occurredOn"]').fill(today);
   await quickAddForm.getByRole("button", { name: "Add transaction" }).click();
   await expect(page.locator(".home-transaction-dialog")).not.toBeVisible();
@@ -371,7 +375,7 @@ test("mobile finance workflows, transaction edit, filters, reports, export, and 
       hasText: "E2E grocery transaction",
     }),
   }).first();
-  await transactionRow.locator(".transaction-details > summary").click();
+  await transactionRow.locator(":scope > .transaction-summary").click();
   await transactionRow.locator('.transaction-form input[name="description"]').fill("E2E grocery transaction edited");
   await transactionRow.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByRole("status").filter({ hasText: "Transaction updated." })).toBeVisible();
@@ -390,7 +394,8 @@ test("mobile finance workflows, transaction edit, filters, reports, export, and 
   await addHomeTransaction(page, "expense", "8.00", yesterdayDescription, yesterdayDate.toISOString().slice(0, 10));
   await addHomeTransaction(page, "income", "10.00", "E2E USD income", today);
   await page.goto("/transactions");
-  await expect(page.locator(".transaction-item").filter({ hasText: "E2E USD income" })).toBeVisible();
+  await expect(page.locator("main .transaction-item:visible").filter({ hasText: "E2E USD income" })).toBeVisible();
+  await expect(page.locator(".transaction-date-heading")).toContainText(["Today", "Yesterday"]);
 
   const largeExpenseDescription = "E2E large USD expense with a long description that must wrap on a phone";
   await page.goto("/");
@@ -414,11 +419,11 @@ test("mobile finance workflows, transaction edit, filters, reports, export, and 
   await expect(page.getByText("Your financial activity, gathered in one place.", { exact: true })).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "Today's expenses" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Today's transactions" })).toBeVisible();
-  await expect(page.locator(".today-expense-total strong")).toHaveCount(2);
-  await expect(page.locator(".today-expense-total strong").filter({ hasText: "23.45" })).toHaveCount(1);
-  await expect(page.locator(".today-expense-total strong").filter({ hasText: "999,999,999,999.99" })).toHaveCount(1);
-  const totalLayoutIsReadable = await page.locator(".today-expense-total").evaluateAll((cards) => cards.every((card) => {
-    const amount = card.querySelector("strong");
+  await expect(page.locator(".today-expense-totals .finance-summary-card-amount")).toHaveCount(2);
+  await expect(page.locator(".today-expense-totals .finance-summary-card-amount").filter({ hasText: "23.45" })).toHaveCount(1);
+  await expect(page.locator(".today-expense-totals .finance-summary-card-amount").filter({ hasText: "999,999,999,999.99" })).toHaveCount(1);
+  const totalLayoutIsReadable = await page.locator(".today-expense-totals .finance-summary-card").evaluateAll((cards) => cards.every((card) => {
+    const amount = card.querySelector(".finance-summary-card-amount");
     return getComputedStyle(card).textAlign === "center"
       && amount !== null
       && getComputedStyle(amount).whiteSpace === "nowrap"
@@ -476,8 +481,8 @@ test("mobile finance workflows, transaction edit, filters, reports, export, and 
   await expect(page.locator(".topbar-label")).toHaveText("Financial Analysis");
   await expect(page.getByRole("heading", { name: "Financial Analysis", level: 1 })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Monthly comparison by currency" })).toBeVisible();
-  await expect(page.locator(".report-controls .report-range-form")).toBeVisible();
-  await expect(page.locator(".report-controls .report-export")).toBeVisible();
+  await expect(page.locator("main .report-controls:visible .report-range-form")).toBeVisible();
+  await expect(page.locator("main .report-controls:visible .report-export")).toBeVisible();
   await expect(page.locator(".report-table")).toContainText("EUR");
   await expect(page.locator(".report-table")).toContainText("USD");
   const reportCardsRetainLabels = await page.locator(".report-table tbody tr").evaluateAll((rows) => (
@@ -526,16 +531,33 @@ test("mobile finance workflows, transaction edit, filters, reports, export, and 
   const visibleSettingsCurrency = page.locator(".settings-form:visible #settings-currency");
   await expect(visibleSettingsCurrency).toHaveCount(1);
   await visibleSettingsCurrency.fill("GBP");
+  await page.locator("#settings-theme").selectOption("light");
   await page.getByRole("button", { name: "Save settings" }).click();
   await expect(page.getByRole("status")).toContainText("Settings saved.");
 
   await page.goto("/transactions");
   await page.setViewportSize({ width: 360, height: 844 });
-  const summaryCards = page.locator(".transaction-summary-card");
+  const summaryCards = page.locator(".transaction-summary-section .finance-summary-card");
   await expect(page.getByRole("region", { name: "Transaction summary" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Transaction summary" })).toHaveCount(0);
   await expect(summaryCards).toHaveCount(2);
-  expect(await summaryCards.first().getAttribute("class")).toContain("today-expense-total");
+  expect(await summaryCards.first().getAttribute("class")).toBe("finance-summary-card");
+  await expect(page.locator(".transaction-summary-heading")).toContainText("Summary");
+  const summaryCardIsProminent = await summaryCards.first().evaluate((card) => {
+    const netAmount = card.querySelector(".finance-summary-card-amount");
+    const dateHeading = card.querySelector(".finance-summary-card-heading");
+    return getComputedStyle(card).textAlign === "center"
+      && netAmount !== null
+      && dateHeading !== null
+      && getComputedStyle(dateHeading).justifyContent === "center"
+      && getComputedStyle(netAmount).whiteSpace === "nowrap"
+      && Number.parseFloat(getComputedStyle(netAmount).fontSize) >= 23;
+  });
+  expect(summaryCardIsProminent).toBe(true);
+  const dateHeadingsAreCentered = await page.locator(".transaction-date-heading").evaluateAll((headings) => (
+    headings.length > 0 && headings.every((heading) => getComputedStyle(heading).textAlign === "center")
+  ));
+  expect(dateHeadingsAreCentered).toBe(true);
   await expect(page.getByRole("button", { name: "Add expense" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Add income" })).toBeVisible();
   const actionFilterGap = await page.locator(".quick-add-actions").evaluate((actions) => {
@@ -570,13 +592,30 @@ test("mobile finance workflows, transaction edit, filters, reports, export, and 
   const largestMobileTransaction = page.locator(".transaction-list .transaction-item").filter({
     has: page.locator(".transaction-summary .transaction-description strong", { hasText: largeExpenseDescription }),
   }).first();
+  await expect(largestMobileTransaction.locator(".transaction-category-icon")).toHaveAttribute("data-icon", "tag");
+  const categorizedMobileTransaction = page.locator(".transaction-list .transaction-item")
+    .filter({
+      has: page.locator(".transaction-description strong", { hasText: "E2E grocery transaction edited" }),
+    }).first();
+  await expect(categorizedMobileTransaction.locator(".transaction-description span")).toContainText(editedCategoryName);
+  await expect(categorizedMobileTransaction.locator(".transaction-category-icon")).toHaveAttribute("data-icon", "utensils");
   const largeCardFits = await largestMobileTransaction.evaluate((card) => {
     const description = card.querySelector(".transaction-description strong");
     const metadata = card.querySelector(".transaction-description span");
     const amount = card.querySelector(".transaction-summary .transaction-amount");
+    const descriptionBounds = description?.getBoundingClientRect();
+    const amountBounds = amount?.getBoundingClientRect();
+    const listBounds = card.parentElement?.getBoundingClientRect();
+    const cardBounds = card.getBoundingClientRect();
     return description !== null
       && metadata?.textContent?.startsWith("Expense ·")
       && amount !== null
+      && descriptionBounds !== undefined
+      && amountBounds !== undefined
+      && listBounds !== undefined
+      && amountBounds.left >= descriptionBounds.right
+      && cardBounds.left >= listBounds.left + 8
+      && cardBounds.right <= listBounds.right - 8
       && card.scrollWidth <= card.clientWidth
       && getComputedStyle(description).whiteSpace === "normal"
       && getComputedStyle(amount).whiteSpace === "nowrap"
@@ -591,7 +630,7 @@ test("mobile finance workflows, transaction edit, filters, reports, export, and 
     });
   });
   expect(filtersFitAndAreTouchFriendly).toBe(true);
-  const transactionDetailsToggle = transactionRow.locator(".transaction-details > summary");
+  const transactionDetailsToggle = transactionRow.locator(":scope > .transaction-summary");
   expect(await transactionDetailsToggle.evaluate((toggle) => toggle.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
   await transactionDetailsToggle.click();
   const phoneFormsAreReadable = await page.locator(".transaction-manager .transaction-form").evaluateAll((forms) =>
@@ -625,7 +664,7 @@ test("mobile finance workflows, transaction edit, filters, reports, export, and 
 
   await page.locator('input[name="search"]').fill("E2E grocery transaction edited");
   await page.locator('.transaction-filters select[name="type"]').selectOption("expense");
-  await page.locator('.transaction-filters select[name="category"]').selectOption({ label: "E2E Edited Category" });
+  await page.locator('.transaction-filters select[name="category"]').selectOption({ label: editedCategoryName });
   await page.locator('input[name="startDate"]').fill(today);
   await page.locator('input[name="endDate"]').fill(today);
   await page.getByRole("button", { name: "Apply filters" }).click();
@@ -659,7 +698,7 @@ test("mobile finance workflows, transaction edit, filters, reports, export, and 
   expect(paginationLinkMeetsPhoneTarget).toBe(true);
 
   page.on("dialog", (dialog) => dialog.accept());
-  await transactionRow.locator(".transaction-details > summary").click();
+  await transactionRow.locator(":scope > .transaction-summary").click();
   await transactionRow.getByRole("button", { name: "Delete transaction" }).click();
   await expect(transactionRow).toHaveCount(0);
 
@@ -670,12 +709,12 @@ test("mobile finance workflows, transaction edit, filters, reports, export, and 
   const yesterdayTransactionRow = page.locator("main .transaction-item:visible")
     .filter({ hasText: yesterdayDescription });
   await expect(yesterdayTransactionRow).toBeVisible();
-  await yesterdayTransactionRow.locator(".transaction-details > summary").click();
+  await yesterdayTransactionRow.locator(":scope > .transaction-summary").click();
   await yesterdayTransactionRow.getByRole("button", { name: "Delete transaction" }).click();
   await expect(yesterdayTransactionRow).toHaveCount(0);
 
   await page.goto("/categories");
-  const editedCategory = page.locator(".category-item").filter({ hasText: "E2E Edited Category" });
-  await editedCategory.getByRole("button", { name: "Delete E2E Edited Category" }).click();
+  const editedCategory = page.locator(".category-item").filter({ hasText: editedCategoryName });
+  await editedCategory.getByRole("button", { name: `Delete ${editedCategoryName}` }).click();
   await expect(editedCategory).toHaveCount(0);
 });

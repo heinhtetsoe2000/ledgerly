@@ -2,13 +2,15 @@ import Link from "next/link";
 import type { Database } from "@/lib/supabase/database.types";
 import { formatCurrencyAmount } from "@/lib/currency";
 import { formatCalendarDate } from "@/lib/dates";
-import { summarizeExpensesByCurrency } from "@/lib/finance";
+import { summarizeByCurrency } from "@/lib/finance";
+import { categoryIcons } from "@/components/category-icons";
+import { FinanceSummaryCard } from "@/components/finance-summary-card";
 import { HomeTransactionDialog } from "@/components/home-transaction-dialog";
 
 type Category = Database["public"]["Tables"]["categories"]["Row"];
 type DailyTransaction = Pick<
   Database["public"]["Tables"]["transactions"]["Row"],
-  "id" | "type" | "amount" | "currency_code" | "description"
+  "id" | "type" | "amount" | "currency_code" | "description" | "category_id"
 >;
 
 export function DailySpendingHome({
@@ -26,11 +28,12 @@ export function DailySpendingHome({
   hasError: boolean;
   transactions: DailyTransaction[];
 }) {
-  const expenseSummaries = summarizeExpensesByCurrency(transactions.map((transaction) => ({
+  const dailySummaries = summarizeByCurrency(transactions.map((transaction) => ({
     amount: String(transaction.amount),
     currencyCode: transaction.currency_code,
     type: transaction.type,
   })));
+  const categoriesById = new Map(categories.map((category) => [category.id, category]));
 
   return (
     <>
@@ -43,15 +46,22 @@ export function DailySpendingHome({
         </div>
         {hasError ? (
           <p className="config-notice" role="status">Today&apos;s activity is unavailable right now.</p>
-        ) : expenseSummaries.length === 0 ? (
+        ) : dailySummaries.length === 0 ? (
           <p className="today-empty">No expenses recorded today.</p>
         ) : (
           <div className="today-expense-totals">
-            {expenseSummaries.map((summary) => (
-              <article className="today-expense-total" key={summary.currencyCode}>
-                <span>{summary.currencyCode}</span>
-                <strong>{formatCurrencyAmount(summary.amount, summary.currencyCode)}</strong>
-              </article>
+            {dailySummaries.map((summary) => (
+              <FinanceSummaryCard
+                amount={summary.expenses}
+                amountLabel="Spent today"
+                currencyCode={summary.currencyCode}
+                dateLabel={formatCalendarDate(date, "en-US")}
+                key={summary.currencyCode}
+                metrics={[
+                  { label: "Income", amount: summary.income },
+                  { label: "Net today", amount: summary.net },
+                ]}
+              />
             ))}
           </div>
         )}
@@ -73,21 +83,32 @@ export function DailySpendingHome({
           <p className="empty-list">No transactions recorded today.</p>
         ) : (
           <ul className="recent-list">
-            {transactions.map((transaction) => (
-              <li key={transaction.id}>
-                <span className={`transaction-type-mark ${transaction.type}`} aria-hidden="true">
-                  {transaction.type === "income" ? "+" : "−"}
-                </span>
-                <span className="recent-description">
-                  <strong>{transaction.description}</strong>
-                  <small>{transaction.type === "income" ? "Income" : "Expense"}</small>
-                </span>
-                <strong className={`transaction-amount ${transaction.type}`}>
-                  {transaction.type === "expense" ? "−" : "+"}
-                  {formatCurrencyAmount(String(transaction.amount), transaction.currency_code)}
-                </strong>
-              </li>
-            ))}
+            {transactions.map((transaction) => {
+              const category = transaction.category_id ? categoriesById.get(transaction.category_id) : undefined;
+              const iconName = category && categoryIcons[category.icon] ? category.icon : "tag";
+              const CategoryIcon = categoryIcons[iconName];
+
+              return (
+                <li key={transaction.id}>
+                  <span
+                    aria-hidden="true"
+                    className="transaction-category-icon"
+                    data-icon={iconName}
+                    style={category?.color ? { color: category.color } : undefined}
+                  >
+                    <CategoryIcon size={18} strokeWidth={1.8} />
+                  </span>
+                  <span className="recent-description">
+                    <strong>{transaction.description}</strong>
+                    <small>{transaction.type === "income" ? "Income" : "Expense"}</small>
+                  </span>
+                  <strong className={`transaction-amount ${transaction.type}`}>
+                    {transaction.type === "expense" ? "−" : "+"}
+                    {formatCurrencyAmount(String(transaction.amount), transaction.currency_code)}
+                  </strong>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>

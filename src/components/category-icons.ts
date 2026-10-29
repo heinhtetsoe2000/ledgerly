@@ -1,0 +1,32 @@
+import {
+  Building2,
+  BriefcaseBusiness,
+  CarFront,
+  Circle,
+  Clapperboard,
+  Gift,
+  HeartPulse,
+  House,
+  Laptop,
+  Receipt,
+  ShoppingBag,
+  Tag,
+  Utensils,
+  type LucideIcon,
+} from "lucide-react";
+
+export const categoryIcons: Record<string, LucideIcon> = {
+  "utensils": Utensils,
+  "car-front": CarFront,
+  "shopping-bag": ShoppingBag,
+  "house": House,
+  "receipt": Receipt,
+  "heart-pulse": HeartPulse,
+  "clapperboard": Clapperboard,
+  "briefcase-business": BriefcaseBusiness,
+  "laptop": Laptop,
+  "building-2": Building2,
+  "gift": Gift,
+  "circle": Circle,
+  "tag": Tag,
+};

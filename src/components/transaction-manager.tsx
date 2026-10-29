@@ -1,9 +1,11 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { Tag } from "lucide-react";
 import type { Database } from "@/lib/supabase/database.types";
 import { formatCalendarDate } from "@/lib/dates";
 import { formatCurrencyAmount } from "@/lib/currency";
+import { categoryIcons } from "@/components/category-icons";
 import { Button } from "@/components/ui/button";
 import {
   deleteTransaction,
@@ -130,54 +132,60 @@ export function TransactionForm({
 
 function TransactionItem({
   transaction,
-  categoryName,
+  category,
   categories,
   currency,
   today,
 }: {
   transaction: Transaction;
-  categoryName: string;
+  category?: Category;
   categories: Category[];
   currency: string;
   today: string;
 }) {
   const [state, action, pending] = useActionState(deleteTransaction, initialState);
+  const categoryName = category?.name ?? "Uncategorized";
+  const categoryIconName = category && categoryIcons[category.icon] ? category.icon : "tag";
+  const CategoryIcon = categoryIcons[categoryIconName] ?? Tag;
+  const secondaryText = transaction.notes?.trim() || `${transaction.type === "income" ? "Income" : "Expense"} · ${categoryName}`;
 
   return (
-    <article className="transaction-item">
-      <div className="transaction-summary">
-        <span className={`transaction-type-mark ${transaction.type}`} aria-hidden="true">
-          {transaction.type === "income" ? "+" : "−"}
+    <details className="transaction-item">
+      <summary aria-label={`Edit ${transaction.description}`} className="transaction-summary">
+        <span
+          aria-hidden="true"
+          className="transaction-category-icon"
+          data-icon={categoryIconName}
+          style={category?.color ? { color: category.color } : undefined}
+        >
+          <CategoryIcon size={20} strokeWidth={1.8} />
         </span>
         <div className="transaction-description">
           <strong>{transaction.description}</strong>
-          <span>{transaction.type === "income" ? "Income" : "Expense"} · {categoryName} · {formatCalendarDate(transaction.occurred_on)}</span>
+          <span>{secondaryText}</span>
         </div>
         <strong className={`transaction-amount ${transaction.type}`}>
           {transaction.type === "expense" ? "−" : "+"}
           {formatCurrencyAmount(String(transaction.amount), transaction.currency_code)}
         </strong>
+      </summary>
+      <div className="transaction-detail-body">
+        <TransactionForm categories={categories} currency={currency} today={today} transaction={transaction} />
+        {transaction.notes && <p className="transaction-notes">{transaction.notes}</p>}
+        <form action={action} onSubmit={(event) => {
+          if (!window.confirm(`Delete “${transaction.description}”?`)) event.preventDefault();
+        }}>
+          <input name="id" type="hidden" value={transaction.id} />
+          <Button disabled={pending} size="sm" type="submit" variant="ghost">Delete transaction</Button>
+          {state.message && (
+            <p className={state.status === "error" ? "auth-feedback auth-error" : "auth-feedback auth-success"}
+              role={state.status === "error" ? "alert" : "status"}>
+              {state.message}
+            </p>
+          )}
+        </form>
       </div>
-      <details className="transaction-details">
-        <summary>Details</summary>
-        <div className="transaction-detail-body">
-          <TransactionForm categories={categories} currency={currency} today={today} transaction={transaction} />
-          {transaction.notes && <p className="transaction-notes">{transaction.notes}</p>}
-          <form action={action} onSubmit={(event) => {
-            if (!window.confirm(`Delete “${transaction.description}”?`)) event.preventDefault();
-          }}>
-            <input name="id" type="hidden" value={transaction.id} />
-            <Button disabled={pending} size="sm" type="submit" variant="ghost">Delete transaction</Button>
-            {state.message && (
-              <p className={state.status === "error" ? "auth-feedback auth-error" : "auth-feedback auth-success"}
-                role={state.status === "error" ? "alert" : "status"}>
-                {state.message}
-              </p>
-            )}
-          </form>
-        </div>
-      </details>
-    </article>
+    </details>
   );
 }
 
@@ -194,7 +202,22 @@ export function TransactionManager({
   totalCount: number;
   transactions: Transaction[];
 }) {
-  const categoryNames = new Map(categories.map((category) => [category.id, category.name]));
+  const categoriesById = new Map(categories.map((category) => [category.id, category]));
+  const transactionGroups: Array<{ date: string; label: string; transactions: Transaction[] }> = [];
+
+  for (const transaction of transactions) {
+    const currentGroup = transactionGroups[transactionGroups.length - 1];
+    if (currentGroup?.date === transaction.occurred_on) {
+      currentGroup.transactions.push(transaction);
+      continue;
+    }
+
+    transactionGroups.push({
+      date: transaction.occurred_on,
+      label: formatTransactionGroupDate(transaction.occurred_on, today),
+      transactions: [transaction],
+    });
+  }
 
   return (
     <div className="transaction-manager">
@@ -207,19 +230,41 @@ export function TransactionManager({
           <p className="empty-list">No transactions recorded yet.</p>
         ) : (
           <div className="transaction-list">
-            {transactions.map((transaction) => (
-              <TransactionItem
-                categories={categories}
-                categoryName={transaction.category_id ? categoryNames.get(transaction.category_id) ?? "Category" : "Uncategorized"}
-                currency={currency}
-                key={transaction.id}
-                today={today}
-                transaction={transaction}
-              />
+            {transactionGroups.map((group) => (
+              <section aria-labelledby={`transaction-date-${group.date}`} className="transaction-date-group" key={group.date}>
+                <h3 className="transaction-date-heading" id={`transaction-date-${group.date}`}>{group.label}</h3>
+                <div className="transaction-date-items">
+                  {group.transactions.map((transaction) => (
+                    <TransactionItem
+                      categories={categories}
+                      category={transaction.category_id ? categoriesById.get(transaction.category_id) : undefined}
+                      currency={currency}
+                      key={transaction.id}
+                      today={today}
+                      transaction={transaction}
+                    />
+                  ))}
+                </div>
+              </section>
             ))}
           </div>
         )}
       </section>
     </div>
   );
+}
+
+function formatTransactionGroupDate(date: string, today: string): string {
+  if (date === today) return "Today";
+
+  const yesterday = new Date(`${today}T00:00:00.000Z`);
+  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+  if (date === yesterday.toISOString().slice(0, 10)) return "Yesterday";
+
+  const transactionDate = new Date(`${date}T00:00:00.000Z`);
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+  }).format(transactionDate);
 }

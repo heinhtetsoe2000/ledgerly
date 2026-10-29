@@ -1,44 +1,12 @@
 "use client";
 
-import {
-  Building2,
-  BriefcaseBusiness,
-  CarFront,
-  Circle,
-  Clapperboard,
-  Gift,
-  HeartPulse,
-  House,
-  Laptop,
-  Receipt,
-  ShoppingBag,
-  Tag,
-  Utensils,
-} from "lucide-react";
 import { useActionState } from "react";
-import type { ComponentType, SVGProps } from "react";
 import type { Database } from "@/lib/supabase/database.types";
+import { categoryIcons } from "@/components/category-icons";
 import { Button } from "@/components/ui/button";
 import { deleteCategory, saveCategory, type CategoryActionState } from "@/app/(app)/categories/actions";
 
 type Category = Database["public"]["Tables"]["categories"]["Row"];
-type IconComponent = ComponentType<SVGProps<SVGSVGElement> & { size?: number }>;
-
-const icons: Record<string, IconComponent> = {
-  "utensils": Utensils,
-  "car-front": CarFront,
-  "shopping-bag": ShoppingBag,
-  "house": House,
-  "receipt": Receipt,
-  "heart-pulse": HeartPulse,
-  "clapperboard": Clapperboard,
-  "briefcase-business": BriefcaseBusiness,
-  "laptop": Laptop,
-  "building-2": Building2,
-  "gift": Gift,
-  "circle": Circle,
-  "tag": Tag,
-};
 
 const initialState: CategoryActionState = { status: "idle" };
 
@@ -63,7 +31,7 @@ function CategoryForm({ category }: { category?: Category }) {
         <label className="field-label">
           Icon
           <select defaultValue={category?.icon ?? "tag"} name="icon">
-            {Object.keys(icons).map((icon) => (
+            {Object.keys(categoryIcons).map((icon) => (
               <option key={icon} value={icon}>{icon.replaceAll("-", " ")}</option>
             ))}
           </select>
@@ -88,12 +56,12 @@ function CategoryForm({ category }: { category?: Category }) {
 
 function CategoryItem({ category }: { category: Category }) {
   const [state, action, pending] = useActionState(deleteCategory, initialState);
-  const Icon = icons[category.icon] ?? Tag;
+  const Icon = categoryIcons[category.icon] ?? categoryIcons.tag;
 
   return (
     <article className="category-item">
       <div className="category-identity">
-        <span aria-hidden="true" className="category-icon" style={{ color: category.color }}>
+        <span aria-hidden="true" className="category-icon" data-icon={category.icon} style={{ color: category.color }}>
           <Icon size={18} />
         </span>
         <span>
