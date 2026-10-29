@@ -3,17 +3,23 @@
 
 :root {
   color-scheme: light;
-  --background: #f4f7f5;
-  --foreground: #17241e;
-  --surface: #ffffff;
-  --muted: #68766f;
-  --line: #dce5df;
-  --accent: #d86749;
-  --accent-strong: #b84e33;
-  --accent-button: #a8422a;
-  --accent-soft: #f9ece7;
-  --sidebar: #1c3028;
-  --sidebar-muted: #a8b9ae;
+  --background: #ffffff;
+  --foreground: #171a18;
+  --surface: #f7f9f8;
+  --muted: #626c66;
+  --line: #dfe5e1;
+  --accent: #0f766e;
+  --accent-strong: #0b5f56;
+  --accent-button: #166534;
+  --accent-soft: #eaf4ef;
+  --sidebar: #f7f9f8;
+  --sidebar-foreground: #171a18;
+  --sidebar-muted: #626c66;
+  --sidebar-hover: #e9efeb;
+  --success: #17643b;
+  --success-button: #166534;
+  --success-button-hover: #14532d;
+  --danger: #b42318;
 }
 
 @theme inline {
@@ -32,17 +38,23 @@
 
 .dark {
   color-scheme: dark;
-  --background: #101814;
-  --foreground: #edf3ee;
-  --surface: #18231d;
-  --muted: #a0aea5;
-  --line: #2a3a31;
-  --accent: #ed9678;
-  --accent-strong: #ffb097;
-  --accent-button: #8f3b26;
-  --accent-soft: #39261f;
-  --sidebar: #0b110e;
-  --sidebar-muted: #a0aea5;
+  --background: #000000;
+  --foreground: #f5f5f5;
+  --surface: #101010;
+  --muted: #a3a3a3;
+  --line: #303030;
+  --accent: #5eead4;
+  --accent-strong: #5eead4;
+  --accent-button: #115e59;
+  --accent-soft: #102522;
+  --sidebar: #080808;
+  --sidebar-foreground: #f5f5f5;
+  --sidebar-muted: #a3a3a3;
+  --sidebar-hover: #1b1b1b;
+  --success: #66d99a;
+  --success-button: #116149;
+  --success-button-hover: #0b4b38;
+  --danger: #ff8a80;
 }
 
 * {
@@ -85,7 +97,7 @@ a {
   flex-direction: column;
   padding: 28px 18px 20px;
   background: var(--sidebar);
-  color: #f5f8f5;
+  color: var(--sidebar-foreground);
 }
 
 .brand-lockup {
@@ -144,18 +156,18 @@ a {
 
 .primary-nav a:hover,
 .primary-nav a[aria-current="page"] {
-  background: #2d463a;
-  color: #ffffff;
+  background: var(--sidebar-hover);
+  color: var(--sidebar-foreground);
 }
 
 .primary-nav a[aria-current="page"] {
-  box-shadow: inset 3px 0 #ef8a69;
+  box-shadow: inset 3px 0 var(--accent);
 }
 
 .sidebar-note {
   margin-top: auto;
   padding: 16px 12px 4px;
-  border-top: 1px solid #34493d;
+  border-top: 1px solid var(--line);
   color: var(--sidebar-muted);
   font-size: 11px;
 }
@@ -385,11 +397,11 @@ a {
 }
 
 .auth-error {
-  color: #b42318;
+  color: var(--danger);
 }
 
 .auth-success {
-  color: #26734d;
+  color: var(--success);
 }
 
 .auth-links {
@@ -719,7 +731,7 @@ a {
 
 .transaction-type-mark.income,
 .transaction-amount.income {
-  color: #26805a;
+  color: var(--success);
 }
 
 .transaction-type-mark.expense,
@@ -960,7 +972,7 @@ a {
 }
 
 .positive {
-  color: #26805a;
+  color: var(--success);
 }
 
 .negative {
@@ -1005,7 +1017,7 @@ a {
 }
 
 .home-transaction-dialog::backdrop {
-  background: rgb(16 25 22 / 52%);
+  background: rgb(0 0 0 / 52%);
   backdrop-filter: blur(2px);
 }
 
@@ -1071,7 +1083,7 @@ a {
 }
 
 .quick-add-link.income {
-  background: #26805a;
+  background: var(--success-button);
 }
 
 .quick-add-link:hover {
@@ -1079,7 +1091,7 @@ a {
 }
 
 .quick-add-link.income:hover {
-  background: #206b4b;
+  background: var(--success-button-hover);
 }
 
 .today-expense-totals {
@@ -1479,7 +1491,7 @@ a {
   }
 
   .mobile-nav .primary-nav a[aria-current="page"] {
-    box-shadow: inset 0 -2px #e47757;
+    box-shadow: inset 0 -2px var(--accent);
   }
 
   .page-content {
