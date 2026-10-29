@@ -45,6 +45,47 @@ async function addHomeTransaction(
   await expect(dialog).not.toBeVisible();
 }
 
+test("authentication screens fit mobile and desktop viewports", async ({ page }) => {
+  const routes = ["/sign-in", "/sign-up", "/forgot-password", "/reset-password"];
+
+  for (const width of [360, 390]) {
+    await page.setViewportSize({ width, height: 844 });
+    for (const route of routes) {
+      await page.goto(route);
+      await expect(page.locator(".auth-card")).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+
+      const mobileMetrics = await page.locator(".auth-card").evaluate((card) => {
+        const inputs = [...card.querySelectorAll("input")];
+        const targets = [...card.querySelectorAll<HTMLElement>("a, button, input")];
+        return {
+          inputFontSizes: inputs.map((input) => Number.parseFloat(getComputedStyle(input).fontSize)),
+          targetSizes: targets.map((target) => {
+            const bounds = target.getBoundingClientRect();
+            return { width: bounds.width, height: bounds.height };
+          }),
+        };
+      });
+
+      expect(mobileMetrics.inputFontSizes.length).toBeGreaterThan(0);
+      expect(mobileMetrics.inputFontSizes.every((size) => size >= 16)).toBe(true);
+      expect(mobileMetrics.targetSizes.every(({ width: targetWidth, height }) => (
+        targetWidth >= 44 && height >= 44
+      ))).toBe(true);
+    }
+  }
+
+  await page.setViewportSize({ width: 640, height: 900 });
+  await page.goto("/sign-in");
+  const desktopMetrics = await page.locator(".auth-card").evaluate((card) => ({
+    width: card.getBoundingClientRect().width,
+    inputFontSize: Number.parseFloat(getComputedStyle(card.querySelector("input")!).fontSize),
+  }));
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(640);
+  expect(desktopMetrics.width).toBeLessThanOrEqual(420);
+  expect(desktopMetrics.inputFontSize).toBe(13);
+});
+
 test("registration, persistent session, sign-out, and protected redirect", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/sign-in");
