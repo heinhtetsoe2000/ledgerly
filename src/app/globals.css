@@ -1273,6 +1273,22 @@ a {
   font-size: 14px;
 }
 
+.today-home .finance-summary-card {
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+.today-home .finance-summary-card-currency {
+  display: none;
+}
+
+.today-home .finance-summary-card-metrics {
+  display: none;
+}
+
 .today-transactions-section {
   min-width: 0;
   margin-bottom: 16px;
@@ -1284,6 +1300,10 @@ a {
 .today-transactions-section .recent-list li {
   grid-template-columns: 44px minmax(0, 1fr) auto;
   gap: 9px;
+  padding: 14px 14px;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .today-transactions-section .section-heading {
@@ -1291,7 +1311,7 @@ a {
 }
 
 .recent-list {
-  gap: 8px;
+  gap: 10px;
 }
 
 .recent-list li {
@@ -1534,6 +1554,104 @@ a {
 .loading-panel-short {
   min-height: 120px;
   margin-top: 0;
+}
+
+.workspace-loading {
+  min-height: 100svh;
+  padding: 24px 20px 56px;
+}
+
+.workspace-loading-brand {
+  display: flex;
+  width: min(100%, 860px);
+  align-items: center;
+  gap: 10px;
+  margin: 0 auto 34px;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.workspace-loading-mark {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  background: var(--accent-button);
+}
+
+.workspace-loading-content {
+  display: grid;
+  width: min(100%, 860px);
+  gap: 16px;
+  margin: 0 auto;
+}
+
+.workspace-loading-summary {
+  width: min(100%, 300px);
+}
+
+.workspace-loading-summary .loading-panel {
+  min-height: 150px;
+  margin: 0;
+}
+
+.workspace-loading-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.workspace-loading-row {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.workspace-loading-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--line);
+  animation: loading-pulse 1.4s ease-in-out infinite alternate;
+}
+
+.workspace-loading-item-copy {
+  display: grid;
+  gap: 8px;
+}
+
+.workspace-loading-item-title {
+  width: min(100%, 180px);
+  height: 12px;
+}
+
+.workspace-loading-item-description {
+  width: min(100%, 100px);
+  height: 10px;
+}
+
+.workspace-loading-amount {
+  width: 58px;
+  height: 14px;
+}
+
+.offline-banner {
+  position: sticky;
+  z-index: 50;
+  top: 0;
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  justify-content: center;
+  padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+  background: var(--danger);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.4;
+  text-align: center;
 }
 
 .application-error {

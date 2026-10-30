@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   distDir: process.env.PLAYWRIGHT_TEST === "true" ? ".next-playwright" : ".next",
   cacheComponents: true,
   partialPrefetching: true,
+  experimental: {
+    useOffline: true,
+  },
   turbopack: {
     rules: {
       "*.css": {
